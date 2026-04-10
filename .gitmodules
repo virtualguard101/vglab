@@ -7,9 +7,12 @@
 [submodule "os/unix"]
 	path = os/unix
 	url = git@github.com:virtualguard101/unix.git
-[submodule "ai/coursera-ml"]
-	path = ai/coursera-ml
-	url = git@github.com:virtualguard101/coursera-ml.git
-[submodule "ai/coursera-dl"]
-	path = ai/coursera-dl
+[submodule "ai/agent/cc-demo"]
+	path = ai/agent/cc-demo
+	url = git@github.com:Windy3f3f3f3f/claude-code-from-scratch.git
+[submodule "ai/dl/coursera-dl"]
+	path = ai/dl/coursera-dl
 	url = git@github.com:virtualguard101/coursera-dl.git
+[submodule "ai/ml/coursera-ml"]
+	path = ai/ml/coursera-ml
+	url = git@github.com:virtualguard101/coursera-ml.git
