@@ -19,6 +19,3 @@
 [submodule "ai/dl/ForyoClassifierCNN"]
 	path = ai/dl/ForyoClassifierCNN
 	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
-[submodule "lang/rs-algo"]
-	path = lang/rs-algo
-	url = git@github.com:virtualguard101/rs-algo.git
