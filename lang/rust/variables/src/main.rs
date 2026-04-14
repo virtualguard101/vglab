@@ -31,7 +31,7 @@ fn main() {
 
     // 4. Shadowing
     let x = 5;
-    let x = x + 1;
+    let x = x + 1; // shadowing, new value assigned to the same variable
     {
         let x = x * 2;
         println!("The value of x in the inner scope is: {x}"); // 12
