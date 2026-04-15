@@ -19,6 +19,7 @@ fn main() {
     println!("e: {}", e); // 255
     assert_eq!(100u8.saturating_add(1), 101);
     assert_eq!(u8::MAX.saturating_add(127), u8::MAX);
+    println!();
 
     // 2. floating point number
     let _x = 5.0; // f64 by default
@@ -35,7 +36,6 @@ fn main() {
     println!("abc (f32)");
     println!("   0.1 + 0.2: {:x}", (abc.0 + abc.1).to_bits());
     println!("         0.3: {:x}", (abc.2).to_bits());
-    println!();
     println!("xyz (f64)");
     println!("   0.1 + 0.2: {:x}", (xyz.0 + xyz.1).to_bits());
     println!("         0.3: {:x}", (xyz.2).to_bits());
@@ -48,4 +48,31 @@ fn main() {
     println!("{}", x);  // NaN
     assert!(x.is_nan());// use `is_nan()` to check if the value is NaN
     // assert!(x == x);    // false
+    println!();
+
+    // 3. value computation
+    // the compiler will automatically infer the type of twenty as i32
+    let twenty = 20;
+    // type annotation
+    let twenty_one: i32 = 21;
+    // type annotation by type suffix: 22 is i32 type
+    let twenty_two = 22i32;
+
+    // only same type can be calculated
+    let addition = twenty + twenty_one + twenty_two;
+    println!("{} + {} + {} = {}", twenty, twenty_one, twenty_two, addition);
+
+    // for longer numbers, can use _ to separate, improve readability
+    let one_million: i64 = 1_000_000;
+    println!("{}", one_million.pow(2));
+
+    // define a f32 array, where 42.0 will be automatically inferred as f32 type
+    let forty_twos = [
+        42.0,
+        42f32,
+        42.0_f32,
+    ];
+
+    // print the first value of the array, and control the decimal place to 2 digits
+    println!("{:.2}", forty_twos[0]);
 }
