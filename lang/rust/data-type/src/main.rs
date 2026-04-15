@@ -42,4 +42,10 @@ fn main() {
     println!();
     assert!(abc.0 + abc.1 == abc.2); // in f32, true because of its lower precision
     // assert!(xyz.0 + xyz.1 == xyz.2); // in f64, false because of its higher precision
+
+    // NaN
+    let x = (-42.0_f32).sqrt();
+    println!("{}", x);  // NaN
+    assert!(x.is_nan());// use `is_nan()` to check if the value is NaN
+    // assert!(x == x);    // false
 }
