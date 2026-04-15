@@ -1,3 +1,6 @@
+use num::complex::Complex;
+use std::ops::{Range, RangeInclusive};
+
 fn main() {
     // 1. integer overflow
     let a: u8 = 255;
@@ -30,7 +33,7 @@ fn main() {
     // assert!(0.1 + 0.2 == 0.3); // false
     assert!((0.1_f64 + 0.2 - 0.3).abs() < 0.00001); // true
 
-    // floating point number precision issue 
+    // floating point number precision issue
     let abc: (f32, f32, f32) = (0.1, 0.2, 0.3);
     let xyz: (f64, f64, f64) = (0.1, 0.2, 0.3);
     println!("abc (f32)");
@@ -45,8 +48,8 @@ fn main() {
 
     // NaN
     let x = (-42.0_f32).sqrt();
-    println!("{}", x);  // NaN
-    assert!(x.is_nan());// use `is_nan()` to check if the value is NaN
+    println!("{}", x); // NaN
+    assert!(x.is_nan()); // use `is_nan()` to check if the value is NaN
     // assert!(x == x);    // false
     println!();
 
@@ -60,19 +63,62 @@ fn main() {
 
     // only same type can be calculated
     let addition = twenty + twenty_one + twenty_two;
-    println!("{} + {} + {} = {}", twenty, twenty_one, twenty_two, addition);
+    println!(
+        "{} + {} + {} = {}",
+        twenty, twenty_one, twenty_two, addition
+    );
 
     // for longer numbers, can use _ to separate, improve readability
     let one_million: i64 = 1_000_000;
     println!("{}", one_million.pow(2));
 
     // define a f32 array, where 42.0 will be automatically inferred as f32 type
-    let forty_twos = [
-        42.0,
-        42f32,
-        42.0_f32,
-    ];
+    let forty_twos = [42.0, 42f32, 42.0_f32];
 
     // print the first value of the array, and control the decimal place to 2 digits
     println!("{:.2}", forty_twos[0]);
+
+    // 4. complex number
+    let a = Complex { re: 2.1, im: -1.2 };
+    let b = Complex::new(11.1, 22.2);
+    let result = a + b;
+
+    println!("{} + {}i", result.re, result.im);
+    println!();
+
+    // Rust By Practice - Drafts
+    // 5.
+    let v1 = 251_u8.wrapping_add(8);
+    let v2 = u8::checked_add(251, 4).unwrap();
+    println!("{}, {}", v1, v2);
+    println!();
+
+    // 10.
+    assert_eq!((1..5), Range{ start: 1, end: 5 });
+    assert_eq!((1..=5), RangeInclusive::new(1, 5)); // inclusive range (include the end value)
+
+    // 11.
+    // Integer addition
+    assert!(1u32 + 2 == 3u32);
+
+    // Integer subtraction
+    assert!(1i32 - 2 == -1i32);
+    // assert!(1u8 - 2 == -1); 
+    
+    assert!(3 * 50 == 150);
+
+    assert!(9.6f32 / 3.2f32 == 3.0f32); // error ! make it work
+
+    assert!(24 % 5 == 4);
+    // Short-circuiting boolean logic
+    assert!(true && false == false);
+    assert!(true || false == true);
+    assert!(!true == false);
+
+    // Bitwise operations
+    println!("0011 AND 0101 is {:04b}", 0b0011u32 & 0b0101);
+    println!("0011 OR 0101 is {:04b}", 0b0011u32 | 0b0101);
+    println!("0011 XOR 0101 is {:04b}", 0b0011u32 ^ 0b0101);
+    println!("1 << 5 is {}", 1u32 << 5);
+    println!("0x80 >> 2 is 0x{:x}", 0x80u32 >> 2);
 }
