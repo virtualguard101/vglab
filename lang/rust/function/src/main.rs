@@ -60,6 +60,6 @@ fn dead_end() -> ! {
 
 fn _indentify_loop() -> ! {
     loop {
-        ()
+
     }
 }

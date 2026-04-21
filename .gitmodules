@@ -19,3 +19,6 @@
 [submodule "ai/dl/ForyoClassifierCNN"]
 	path = ai/dl/ForyoClassifierCNN
 	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
+[submodule "cca/nand2tetris"]
+	path = cca/nand2tetris
+	url = git@github.com:virtualguard101/Nand2Tetris.git
