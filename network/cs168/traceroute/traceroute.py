@@ -41,21 +41,65 @@ class IPv4:
         bitstring = ''.join(f'{byte:08b}' for byte in buffer)
         '''bitstring -> str: 
         Transfer the buffer(ipv4 header) into a continuous bitstring.
+        It will be extracted to corresponding fields in the ipv4 header below.
         '''
         self.version = int(bitstring[:4], base=2)
         '''Extract the version field from the bitstring.
         Convert the first 4 bits of the bitstring to an integer.
-        Corresponding to the version field in the ipv4 header.
         '''
-        self.header_len = int(bitstring[4:16], base=2)
+        self.header_len = int(bitstring[4:8], base=2)
         '''Extract the header length field from the bitstring.
-        Convert the next 12 bits of the bitstring to an integer.
-        Corresponding to the header length field in the ipv4 header.
+        Convert the next 4 bits of the bitstring to an integer.
         '''
-        self.tos = int(bitstring[16:24], base=2)
-        '''Extract the type of service field from the bitstring.
-        Convert the next 8 bits of the bitstring to an integer.
-        Corresponding to the type of service field in the ipv4 header.
+        # self.tos = int(bitstring[16:24], base=2) # inefficient, cost twice time of type conversion
+        self.tos = buffer[1] 
+        '''Evaluate the type of service field from the second byte of the buffer(TOS/DSCP+ECN) directly.
+        '''
+        self.length = int.from_bytes(buffer[2:4], byteorder='big') 
+        '''Extract the total length of the packet field from the buffer.
+        Convert the next 2 bytes of the buffer to an integer.
+
+        Notice: `byteorder='big'` is necessary to convert the bytes to an integer in network byte order(big-end).
+        '''
+        # self.flags = int(bitstring[48:48+3], base=2)
+        # '''Extract the flags field from the bitstring.
+        # Convert the next 3 bits of the bitstring to an integer.
+        # '''
+        # self.frag_offset = int(bitstring[51:64], base=2)
+        # '''Extract the fragment offset field from the bitstring.
+        # Convert the next 13 bits of the bitstring to an integer.
+        # '''
+        flags_frag = int.from_bytes(buffer[6:8], byteorder='big')
+        '''Extract the combined flags + fragment offset field from the buffer.
+        Convert bytes 7-8 of the IPv4 header to a 16-bit integer in network byte order.
+        '''
+        self.flags = (flags_frag >> 13) & 0x7
+        '''Extract the flags field from the high 3 bits of the combined 16-bit value.
+        Shift right by 13 bits, then keep only the lowest 3 bits by masking with 0x7.
+        '''
+        self.frag_offset = flags_frag & 0x1FFF
+        '''Extract the fragment offset field from the low 13 bits of the combined value.
+        Mask with 0x1FFF to keep only bits [12:0] of the original 16-bit field.
+        '''
+        self.ttl = buffer[8]
+        '''Extract the TTL field from the buffer.
+        The TTL field is the 9th byte of the buffer.
+        '''
+        self.proto = buffer[9]
+        '''Extract the protocol field from the buffer.
+        The protocol field is the 10th byte of the buffer.
+        '''
+        self.cksum = int.from_bytes(buffer[10:12], byteorder='big')
+        '''Extract the checksum field from the buffer.
+        Convert bytes 11-12 of the IPv4 header to a 16-bit integer in network byte order.
+        '''
+        self.src = util.inet_ntoa(buffer[12:16])
+        '''Extract the source IP address field from the buffer.
+        Use `util.inet_ntoa()` to convert an IP address from 32-bit packed binary format to string format.
+        '''
+        self.dst = util.inet_ntoa(buffer[16:20])
+        '''Extract the destination IP address field from the buffer.
+        The same way to above.
         '''
 
     def __str__(self) -> str:
