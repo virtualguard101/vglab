@@ -38,7 +38,25 @@ class IPv4:
     dst: str
 
     def __init__(self, buffer: bytes):
-        pass  # TODO
+        bitstring = ''.join(f'{byte:08b}' for byte in buffer)
+        '''bitstring -> str: 
+        Transfer the buffer(ipv4 header) into a continuous bitstring.
+        '''
+        self.version = int(bitstring[:4], base=2)
+        '''Extract the version field from the bitstring.
+        Convert the first 4 bits of the bitstring to an integer.
+        Corresponding to the version field in the ipv4 header.
+        '''
+        self.header_len = int(bitstring[4:16], base=2)
+        '''Extract the header length field from the bitstring.
+        Convert the next 12 bits of the bitstring to an integer.
+        Corresponding to the header length field in the ipv4 header.
+        '''
+        self.tos = int(bitstring[16:24], base=2)
+        '''Extract the type of service field from the bitstring.
+        Convert the next 8 bits of the bitstring to an integer.
+        Corresponding to the type of service field in the ipv4 header.
+        '''
 
     def __str__(self) -> str:
         return f"IPv{self.version} (tos 0x{self.tos:x}, ttl {self.ttl}, " + \
