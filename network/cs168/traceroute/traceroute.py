@@ -122,7 +122,16 @@ class ICMP:
     cksum: int
 
     def __init__(self, buffer: bytes):
-        pass  # TODO
+        self.type = buffer[0]
+        '''Error type, 1 byte.
+        '''
+        self.code = buffer[1]
+        '''Error code, 1 byte.
+        '''
+        self.cksum = int.from_bytes(buffer[2:4], byteorder='big')
+        '''Checksum, 2 bytes.
+        Convert bytes 2-3 of the buffer to an integer in network byte order.
+        '''
 
     def __str__(self) -> str:
         return f"ICMP (type {self.type}, code {self.code}, " + \
@@ -141,13 +150,81 @@ class UDP:
     cksum: int
 
     def __init__(self, buffer: bytes):
-        pass  # TODO
+        self.src_port = int.from_bytes(buffer[0:2], byteorder='big')
+        '''Source port, 2 bytes.
+        Convert bytes 0-1 of the buffer to an integer in network byte order.
+        '''
+        self.dst_port = int.from_bytes(buffer[2:4], byteorder='big')
+        '''Destination port, 2 bytes.
+        Convert bytes 2-3 of the buffer to an integer in network byte order.
+        '''
+        self.len = int.from_bytes(buffer[4:6], byteorder='big')
+        '''Length, 2 bytes.
+        Convert bytes 4-5 of the buffer to an integer in network byte order.
+        '''
+        self.cksum = int.from_bytes(buffer[6:8], byteorder='big')
+        '''Checksum, 2 bytes.
+        Convert bytes 6-7 of the buffer to an integer in network byte order.
+        '''
 
     def __str__(self) -> str:
         return f"UDP (src_port {self.src_port}, dst_port {self.dst_port}, " + \
             f"len {self.len}, cksum 0x{self.cksum:x})"
 
-# TODO feel free to add helper functions if you'd like
+def check_ttl_expired(icmp: ICMP) -> bool:
+    """Check if the TTL has expired.
+    In ICMP packets, if the error type is 11 and the error code is 0, it means the TTL has expired.
+
+    Args:
+        icmp (ICMP): The ICMP packet.
+
+    Returns:
+        bool: True if the TTL has expired, False otherwise.
+    """
+    return icmp.type == 11 and icmp.code == 0
+
+def check_unreachable(icmp: ICMP) -> bool:
+    """Check if the packet is unreachable.
+    In ICMP packets, if the error type is 3 and the error code is 3,
+    it means the packet is unreachable (Destination Port Unreachable).
+
+    Args:
+        icmp (ICMP): The ICMP packet.
+
+    Returns:
+        bool: True if the packet is unreachable, False otherwise.
+    """
+    return icmp.type == 3 and icmp.code == 3
+
+def probe_response(recvsock: util.Socket, ttl: int) -> util.typing.Optional[str]:
+    """Consume ICMP responses and return the router IP for a valid probe reply.
+
+    Args:
+        recvsock (util.Socket): ICMP receive socket used to read incoming packets.
+        ttl (int): TTL used by the probe attempt (currently kept for call-site context).
+
+    Returns:
+        Optional[str]: Source IPv4 address of the router that generated a valid
+        ICMP Time Exceeded or Destination Unreachable response for this traceroute
+        probe, or None if no matching response is available.
+    """
+    while recvsock.recv_select():
+        packet, sender_addr = recvsock.recvfrom()
+        ipv4 = IPv4(packet)
+
+        # Only parse icmp packets
+        if ipv4.proto != 1:
+            continue
+        icmp = ICMP(packet[ipv4.header_len*4:])
+
+        if check_ttl_expired(icmp=icmp) or check_unreachable(icmp=icmp):
+            # Parse the ipv4 header of sender
+            ipv4_sender = IPv4(packet[:ipv4.header_len*4 + 8:])
+            # Parse the udp header
+            udp = UDP(packet[ipv4.header_len*4 + 8 + ipv4_sender.header_len*4:])
+            if udp.dst_port == TRACEROUTE_PORT_NUMBER:
+                return sender_addr[0]
+    return None
 
 def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
         -> list[list[str]]:
@@ -169,10 +246,22 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     should be included as the final element in the list.
     """
 
-    # TODO Add your implementation
+    discovered_routers = [] # init a list to store the routers discovered at each TTL
+    # for-loop to iterate over each TTL
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        util.print_result([], ttl)
-    return []
+        sendsock.set_ttl(ttl) # set the TTL of the sending socket
+        routers = [] # init a list to store the routers discovered at this TTL
+        # for-loop to iterate over each probe attempt
+        for _ in range(PROBE_ATTEMPT_COUNT):
+            sendsock.sendto(b"traceroute probe", (ip, TRACEROUTE_PORT_NUMBER)) # send a traceroute probe
+            addr = probe_response(recvsock=recvsock, ttl=ttl) # receive a response from the router
+            if addr and addr not in routers: # if the router is discovered, add it to the list
+                routers.append(addr)
+        util.print_result(routers=routers, ttl=ttl)
+        discovered_routers.append(routers)
+        if ip in routers:
+            break # if the end host is discovered, break the loop
+    return discovered_routers
 
 
 if __name__ == '__main__':
