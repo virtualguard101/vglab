@@ -29,7 +29,7 @@ self.tos = buffer[1]                 # integer (recommended)
 
 Conclusion:
 
-- `bitstring[16:24]` only returns a string,不适合 `tos: int`;
+- `bitstring[16:24]` only returns a string, which is not suitable for `tos: int`;
 - `int(bitstring[16:24], 2)` is semantically equivalent to `buffer[1]`;
 - `buffer[1]` is more direct, efficient, and less likely to be written incorrectly.
 
