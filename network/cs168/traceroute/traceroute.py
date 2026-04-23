@@ -199,6 +199,21 @@ def check_unreachable(icmp: ICMP) -> bool:
 def probe_response(recvsock: util.Socket, ttl: int) -> util.typing.Optional[str]:
     """Consume ICMP responses and return the router IP for a valid probe reply.
 
+    Packet layout used by this parser (ICMP error message):
+
+        [Outer IPv4 header][ICMP header + 4-byte field][Quoted original packet...]
+                         ^                              ^
+                         |                              |
+                         |-- ICMP starts at offset: outer_ipv4.header_len * 4
+
+        Quoted original packet starts after the first 8 bytes of ICMP payload:
+        [Quoted original IPv4 header][Quoted original UDP header...]
+                                     ^
+                                     |
+                                     |-- UDP starts at:
+                                         outer_ipv4.header_len * 4 + 8
+                                         + quoted_ipv4.header_len * 4
+
     Args:
         recvsock (util.Socket): ICMP receive socket used to read incoming packets.
         ttl (int): TTL used by the probe attempt (currently kept for call-site context).
@@ -208,21 +223,32 @@ def probe_response(recvsock: util.Socket, ttl: int) -> util.typing.Optional[str]
         ICMP Time Exceeded or Destination Unreachable response for this traceroute
         probe, or None if no matching response is available.
     """
+    # Keep draining readable ICMP packets to avoid stale replies affecting later probes.
     while recvsock.recv_select():
+        # Read one full packet; sender_addr[0] is the source IP of this ICMP reply.
         packet, sender_addr = recvsock.recvfrom()
+        # Parse the outer IPv4 header (the IPv4 header of the ICMP error packet itself).
         ipv4 = IPv4(packet)
 
-        # Only parse icmp packets
+        # Only process ICMP (proto=1); other protocols are unrelated to traceroute feedback.
         if ipv4.proto != 1:
             continue
+        # ICMP begins immediately after the outer IPv4 header.
         icmp = ICMP(packet[ipv4.header_len*4:])
 
+        # Accept only the two ICMP error classes relevant to UDP traceroute:
+        # - TTL expired in transit: type=11, code=0
+        # - Destination port unreachable: type=3, code=3
         if check_ttl_expired(icmp=icmp) or check_unreachable(icmp=icmp):
-            # Parse the ipv4 header of sender
+            # ICMP error payload includes the original packet that triggered the error.
+            # After the outer IPv4 header, the first 8 ICMP bytes are fixed fields;
+            # the quoted original IPv4 header starts right after those 8 bytes.
             ipv4_sender = IPv4(packet[:ipv4.header_len*4 + 8:])
-            # Parse the udp header
+            # Quoted UDP header starts after: outer IPv4 + ICMP fixed 8 bytes + quoted IPv4.
             udp = UDP(packet[ipv4.header_len*4 + 8 + ipv4_sender.header_len*4:])
+            # Keep only replies that quote our traceroute destination port.
             if udp.dst_port == TRACEROUTE_PORT_NUMBER:
+                # Return the current hop IP (router or final destination).
                 return sender_addr[0]
     return None
 
@@ -246,21 +272,30 @@ def traceroute(sendsock: util.Socket, recvsock: util.Socket, ip: str) \
     should be included as the final element in the list.
     """
 
-    discovered_routers = [] # init a list to store the routers discovered at each TTL
-    # for-loop to iterate over each TTL
+    # Accumulate one router list per TTL hop.
+    discovered_routers = []
+    # Probe TTL values from 1 up to the configured maximum.
     for ttl in range(1, TRACEROUTE_MAX_TTL+1):
-        sendsock.set_ttl(ttl) # set the TTL of the sending socket
-        routers = [] # init a list to store the routers discovered at this TTL
-        # for-loop to iterate over each probe attempt
+        # Configure outgoing probe packets to expire after `ttl` hops.
+        sendsock.set_ttl(ttl)
+        # Store unique router IPs discovered for this specific TTL.
+        routers = []
+        # Send multiple probes for this TTL to tolerate packet loss.
         for _ in range(PROBE_ATTEMPT_COUNT):
-            sendsock.sendto(b"traceroute probe", (ip, TRACEROUTE_PORT_NUMBER)) # send a traceroute probe
-            addr = probe_response(recvsock=recvsock, ttl=ttl) # receive a response from the router
-            if addr and addr not in routers: # if the router is discovered, add it to the list
+            # Send a UDP traceroute probe toward the target host and destination port.
+            sendsock.sendto(b"traceroute probe", (ip, TRACEROUTE_PORT_NUMBER))
+            # Try to read one valid ICMP response for this probe.
+            addr = probe_response(recvsock=recvsock, ttl=ttl)
+            # Keep only non-empty and non-duplicate hop addresses.
+            if addr and addr not in routers:
                 routers.append(addr)
+        # Print intermediate traceroute output for this TTL.
         util.print_result(routers=routers, ttl=ttl)
+        # Persist this TTL result into the overall traceroute path.
         discovered_routers.append(routers)
+        # Stop early once the destination host is reached.
         if ip in routers:
-            break # if the end host is discovered, break the loop
+            break
     return discovered_routers
 
 
