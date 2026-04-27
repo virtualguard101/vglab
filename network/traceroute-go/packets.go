@@ -1,6 +1,9 @@
 package main
 
-import "net"
+import (
+	"encoding/binary"
+	"net"
+)
 
 type IPv4 struct {
 	Version        int    // 4 bits, Version of the IP protocol being used.
@@ -30,4 +33,47 @@ type UDP struct {
 	Length   int    // 16 bits, Length of the UDP header.
 	Checksum int    // 16 bits, Checksum of the UDP header.
 	Data     []byte // Data of the UDP message.
+}
+
+func ParseIPv4(packet []byte) IPv4 {
+	// IPv4 header without options is at least 20 bytes.
+	if len(packet) < 20 {
+		return IPv4{}
+	}
+
+	fragmentField := binary.BigEndian.Uint16(packet[6:8])
+
+	return IPv4{
+		Version:        int(packet[0] >> 4),
+		HeaderLen:      int(packet[0] & 0x0F),
+		TOS:            int(packet[1]),
+		Length:         int(binary.BigEndian.Uint16(packet[2:4])),
+		ID:             int(binary.BigEndian.Uint16(packet[4:6])),
+		Flags:          int(packet[6] >> 5),
+		FragOffset:     int(fragmentField & 0x1FFF),
+		TTL:            int(packet[8]),
+		Protocol:       int(packet[9]),
+		HeaderChecksum: int(binary.BigEndian.Uint16(packet[10:12])),
+		SourceIP:       append(net.IP(nil), packet[12:16]...),
+		DestinationIP:  append(net.IP(nil), packet[16:20]...),
+	}
+}
+
+func ParseICMP(packet []byte) ICMP {
+	return ICMP{
+		Type:     int(packet[0]),
+		Code:     int(packet[1]),
+		Checksum: int(binary.BigEndian.Uint16(packet[2:4])),
+		Data:     packet[4:],
+	}
+}
+
+func ParseUDP(packet []byte) UDP {
+	return UDP{
+		SrcPort:  int(binary.BigEndian.Uint16(packet[0:2])),
+		DstPort:  int(binary.BigEndian.Uint16(packet[2:4])),
+		Length:   int(binary.BigEndian.Uint16(packet[4:6])),
+		Checksum: int(binary.BigEndian.Uint16(packet[6:8])),
+		Data:     packet[8:],
+	}
 }
