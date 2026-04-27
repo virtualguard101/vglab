@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -20,9 +21,12 @@ func headers(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	log.Println("Starting server on port 8090...")
+	err := http.ListenAndServe(":8090", nil)
+	if err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 
 	http.HandleFunc("/hello", hello)
 	http.HandleFunc("/headers", headers)
-
-	http.ListenAndServe(":8090", nil)
 }
