@@ -60,6 +60,10 @@ func ParseIPv4(packet []byte) IPv4 {
 }
 
 func ParseICMP(packet []byte) ICMP {
+	if len(packet) < 4 {
+		return ICMP{}
+	}
+
 	return ICMP{
 		Type:     int(packet[0]),
 		Code:     int(packet[1]),
@@ -69,6 +73,10 @@ func ParseICMP(packet []byte) ICMP {
 }
 
 func ParseUDP(packet []byte) UDP {
+	if len(packet) < 8 {
+		return UDP{}
+	}
+
 	return UDP{
 		SrcPort:  int(binary.BigEndian.Uint16(packet[0:2])),
 		DstPort:  int(binary.BigEndian.Uint16(packet[2:4])),
