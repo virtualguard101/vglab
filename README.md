@@ -15,3 +15,9 @@ git clone --recurse-submodules git@github.com:virtualguard101/vglab.git
 ```bash
 ./bootstrap.sh
 ```
+
+## Commands
+
+This repo uses [Just](https://github.com/casey/just) to manage commands.
+
+Use `just --list` to list all commands.

@@ -1,9 +1,6 @@
 [submodule "os/ostep-code"]
 	path = os/ostep-code
 	url = git@github.com:virtualguard101/ostep-code.git
-[submodule "ai/agent/cc-demo"]
-	path = ai/agent/cc-demo
-	url = git@github.com:Windy3f3f3f3f/claude-code-from-scratch.git
 [submodule "ai/dl/ForyoClassifierCNN"]
 	path = ai/dl/ForyoClassifierCNN
 	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
