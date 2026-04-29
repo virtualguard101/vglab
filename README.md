@@ -13,7 +13,7 @@ git clone --recurse-submodules git@github.com:virtualguard101/vglab.git
 - Set up the environment
 
 ```bash
-./bootstrap.sh
+./scripts/bootstrap.sh
 ```
 
 ## Commands
