@@ -1,21 +1,15 @@
-[submodule "cpp/cs106l-assignments"]
-	path = cpp/cs106l-assignments
-	url = git@github.com:virtualguard101/cs106l-assignments.git
 [submodule "os/ostep-code"]
 	path = os/ostep-code
 	url = git@github.com:virtualguard101/ostep-code.git
 [submodule "ai/agent/cc-demo"]
 	path = ai/agent/cc-demo
 	url = git@github.com:Windy3f3f3f3f/claude-code-from-scratch.git
-[submodule "ai/dl/coursera-dl"]
-	path = ai/dl/coursera-dl
-	url = git@github.com:virtualguard101/coursera-dl.git
-[submodule "ai/ml/coursera-ml"]
-	path = ai/ml/coursera-ml
-	url = git@github.com:virtualguard101/coursera-ml.git
 [submodule "ai/dl/ForyoClassifierCNN"]
 	path = ai/dl/ForyoClassifierCNN
 	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
 [submodule "cca/nand2tetris"]
 	path = cca/nand2tetris
 	url = git@github.com:virtualguard101/Nand2Tetris.git
+[submodule "lang/cpp/cs106l"]
+	path = lang/cpp/cs106l
+	url = git@github.com:virtualguard101/cs106l-assignments.git
