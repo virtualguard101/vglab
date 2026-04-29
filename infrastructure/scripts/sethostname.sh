@@ -6,14 +6,21 @@
 
 set -euo pipefail
 
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $0 <new-hostname>"
+    exit 1
+fi
+
 NEW_HOSTNAME=$1
 
 echo "=== Start to set hostname to: $NEW_HOSTNAME ==="
 
 # Check if the user is root
 if [[ $EUID -ne 0 ]]; then
-    echo "The user is not root, trying to use sudo to execute..."
-    exec sudo "$0" "$@"
+    echo "This script must run as root."
+    echo "For remote execution, use:"
+    echo "curl -fsSL <raw-script-url> | sudo bash -s -- $NEW_HOSTNAME"
+    exit 1
 fi
 
 # 1. Backup the original files
@@ -23,7 +30,13 @@ cp -f /etc/hosts /etc/hosts.bak.$(date +%Y%m%d_%H%M%S) 2>/dev/null || true
 
 # 2. Immediately set the hostname (UTS namespace)
 echo "Immediately set the hostname..."
-hostname "$NEW_HOSTNAME"
+if hostname "$NEW_HOSTNAME"; then
+    echo "Runtime hostname updated."
+else
+    echo "Warning: failed to change runtime hostname."
+    echo "Reason is usually missing capability (CAP_SYS_ADMIN) or restricted UTS namespace."
+    echo "Continue to update /etc/hostname and /etc/hosts only."
+fi
 
 # 3. Permanent write to /etc/hostname
 echo "$NEW_HOSTNAME" > /etc/hostname
