@@ -6,7 +6,7 @@
 
 set -euo pipefail
 
-NEW_HOSTNAME="gpufree"
+NEW_HOSTNAME=$1
 
 echo "=== Start to set hostname to: $NEW_HOSTNAME ==="
 

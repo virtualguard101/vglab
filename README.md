@@ -18,6 +18,22 @@ git clone --recurse-submodules git@github.com:virtualguard101/vglab.git
 
 ## Commands
 
-This repo uses [Just](https://github.com/casey/just) to manage commands.
+This repo uses [Just](https://github.com/casey/just) to manage commands, see [``justfile``](justfile) for details.
 
 Use `just --list` to list all commands.
+
+## Scripts
+
+### Infrastructure scripts
+
+- Setup cuda environment: [``setup-cuda.sh``](infrastructure/scripts/setup-cuda.sh)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/virtualguard101/vglab/main/infrastructure/scripts/setup-cuda.sh | bash
+```
+
+- Set hostname in container without systemd: [``sethostname.sh``](infrastructure/scripts/sethostname.sh)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/virtualguard101/vglab/main/infrastructure/scripts/sethostname.sh | bash -s -- <hostname>
+```
