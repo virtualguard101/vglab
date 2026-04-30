@@ -31,9 +31,3 @@ Use `just --list` to list all commands.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/virtualguard101/vglab/main/infrastructure/scripts/setup-cuda.sh | bash
 ```
-
-- Set hostname in container without systemd: [``sethostname.sh``](infrastructure/scripts/sethostname.sh)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/virtualguard101/vglab/main/infrastructure/scripts/sethostname.sh | bash -s -- <hostname>
-```
