@@ -10,3 +10,6 @@
 [submodule "lang/cpp/cs106l"]
 	path = lang/cpp/cs106l
 	url = git@github.com:virtualguard101/cs106l-assignments.git
+[submodule "cca/cs61c"]
+	path = cca/cs61c
+	url = git@github.com:virtualguard101/cs61c.git
