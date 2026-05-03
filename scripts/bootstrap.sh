@@ -22,4 +22,5 @@ fi
 uv sync
 echo 'dependencies installed successfully'
 
-# check whether the machine has a GPU
+# reload the shell
+exec $SHELL
