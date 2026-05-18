@@ -16,3 +16,6 @@
 [submodule "network/netdiy"]
 	path = network/netdiy
 	url = git@github.com:virtualguard101/netdiy.git
+[submodule "infrastructure/cuda/cuda-learning"]
+	path = infrastructure/cuda/cuda-learning
+	url = git@github.com:virtualguard101/cuda-learning.git
