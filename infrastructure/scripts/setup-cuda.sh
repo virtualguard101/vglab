@@ -21,3 +21,6 @@ if ! rg -q '^export LD_LIBRARY_PATH=/usr/local/cuda/lib64:\$LD_LIBRARY_PATH$' "$
 fi
 
 source "$HOME/.bashrc"
+exec bash
+
+sudo apt install -y nvtop
