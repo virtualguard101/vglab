@@ -1,0 +1,2 @@
+format:
+    rg --files -g '*.{hh,cc}' -0 | xargs -0 clang-format -i
