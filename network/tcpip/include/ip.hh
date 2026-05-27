@@ -5,6 +5,8 @@
 #include <string_view>
 #include <vector>
 
+using ByteVector = std::vector<uint8_t>;
+
 struct IPv4Address {
   std::array<uint8_t, 4> octets{};
 
@@ -33,7 +35,7 @@ struct IPv4Header {
   uint16_t header_checksum;
   IPv4Address src_addr;
   IPv4Address dst_addr;
-  std::vector<uint8_t> options;
+  ByteVector options;
 };
 
 /// https://datatracker.ietf.org/doc/html/rfc791#section-3.1
@@ -54,7 +56,7 @@ struct IPv4Header {
 /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 struct IPv4Packet {
   IPv4Header header;
-  std::vector<uint8_t> payload;
+  ByteVector payload;
 };
 
 /// @brief Decode an IPv4 header from a packet buffer.
@@ -64,6 +66,5 @@ std::optional<IPv4Packet> Decoder(const uint8_t* data);
 
 /// @brief Encode an IPv4 packet into a buffer.
 /// @param packet The IPv4 packet to encode.
-/// @param data Pointer to the buffer to encode the packet into.
-/// @return The number of bytes encoded, or nullopt if the encoding fails.
-std::optional<uint8_t> Encoder(const IPv4Packet& packet, uint8_t* data);
+/// @return The encoded packet, or nullopt if the encoding fails.
+std::optional<ByteVector> Encoder(const IPv4Packet& packet);

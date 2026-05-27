@@ -1,2 +1,8 @@
 format:
     rg --files -g '*.{hh,cc}' -0 | xargs -0 clang-format -i
+
+build:
+    cmake --build build --config Release
+
+run:
+    ./build/tcpip

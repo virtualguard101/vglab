@@ -53,7 +53,11 @@ std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
       return std::nullopt;
     }
 
-    start = end + 1;
+    if (i < 3) {
+      start = end + 1;
+    } else {
+      start = end;
+    }
   }
 
   if (start != str.size()) {
@@ -110,12 +114,12 @@ std::optional<IPv4Packet> Decoder(const uint8_t* data) {
   }
 
   // Verify checksum
-  if (!VerifyChecksum(data, header.header_len)) {
+  if (!VerifyIPv4Checksum(data, header.header_len)) {
     std::cerr << "Invalid IPv4 header checksum\n";
     return std::nullopt;
   }
 
-  /// Assemble packet
+  /// Assemble packet and return
   try {
     IPv4Packet packet{
         .header = header,
@@ -129,9 +133,9 @@ std::optional<IPv4Packet> Decoder(const uint8_t* data) {
   }
 }
 
-std::optional<std::vector<uint8_t>> Encoder(const IPv4Packet& packet) {
+std::optional<ByteVector> Encoder(const IPv4Packet& packet) {
   /// Encode payload
-  std::vector<uint8_t> payload{};
+  ByteVector payload{};
   if (!packet.payload.empty()) {
     try {
       payload.assign(packet.payload.begin(), packet.payload.end());
@@ -142,7 +146,7 @@ std::optional<std::vector<uint8_t>> Encoder(const IPv4Packet& packet) {
   }
 
   /// Encode header
-  std::vector<uint8_t> data{};
+  ByteVector data{};
 
   // Helper function to write a 16-bit value to the data vector
   auto append_be16 = [&data](uint16_t value) {
@@ -169,7 +173,7 @@ std::optional<std::vector<uint8_t>> Encoder(const IPv4Packet& packet) {
 
     // Calculate checksum
     const std::size_t header_len = data.size();
-    const auto checksum = CalculateChecksum(data.data(), header_len);
+    const auto checksum = CalculateIPv4Checksum(data.data(), header_len);
     if (!checksum) {
       std::cerr << "Error calculating IPv4 header checksum\n";
       return std::nullopt;
@@ -183,7 +187,7 @@ std::optional<std::vector<uint8_t>> Encoder(const IPv4Packet& packet) {
   /// Assemble raw packet data and return
   try {
     // Verify checksum (self-consistency check)
-    if (!VerifyChecksum(data.data(), data.size())) {
+    if (!VerifyIPv4Checksum(data.data(), data.size())) {
       std::cerr << "Error verifying IPv4 header checksum\n";
       return std::nullopt;
     }
