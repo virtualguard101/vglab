@@ -24,7 +24,7 @@
 
 | 阶段 | 范围 | 验收 |
 |------|------|------|
-| M0 | 链路环回 + IPv4 解析/校验 | 单元测试喂原始帧 |
+| M0 | 链路环回 + IPv4 解析/校验 | 单元测试喂原始帧（详见 [`docs/m0.md`](docs/m0.md)） |
 | M1 | UDP echo | `channel` 式 fake link，无 TUN |
 | M2 | TCP 单连接（简化版） | 与参考用例或 `nc` 少量场景对比 |
 | M3 | TUN 对接宿主 | `tun_tcp_echo` 级别 demo |
@@ -101,54 +101,6 @@ netstack
 
 ---
 
-## Rust 重写建议
-
-### 语言与生态选型
-
-- [ ] 主线：`std` + workspace 多 crate（见上方目录）
-- [ ] 进阶（可选）：`no_std` + `heapless`/`embedded-io` 分支，与主线 API 对齐
-- [ ] 阻塞模型：推荐 **内部非阻塞 + `async` 对外**（`tokio` 或轻量 executor）；若对标 Netstack，则实现 `Waiter` trait + `Waker`
-- [ ] TUN：[`tun`](https://crates.io/crates/tun) 等成熟 crate，M3 再引入
-
-### 工程实践
-
-- [ ] `cargo fmt` / `clippy -D warnings` 进 CI
-- [ ] 所有 `unsafe` 必须注释 SAFETY 与不变量；考虑 `miri` 测 unsafe 路径
-- [ ] `cargo fuzz` 覆盖 `header` 解析
-- [ ] 公开 API 仅 `stack` + `Endpoint`；其余 `pub(crate)`
-- [ ] 用 trait 对标 Netstack 的 `LinkEndpoint` / `NetworkProtocol` / `TransportProtocol`
-
-### 推荐 crate 划分
-
-```text
-crates
-├── netstack             # Address, Error, Endpoint trait
-├── stack
-├── header
-├── buffer
-├── link
-├── net
-├── transport
-├── ports
-├── seqnum
-└── adapters             # 可选：类似 std::net 的封装
-```
-
-### Rust 特有任务
-
-- [ ] 定义 `PacketBuffer` 所有权模型（`Bytes` / 自研 chain / `Vec` 起步）
-- [ ] `seqnum` 用 newtype + 单元测试覆盖回绕
-- [ ] TCP 状态机用 `enum` + 显式转换表，避免散落 `bool`
-- [ ] 集成测试：`tokio::test` + channel link
-- [ ] 示例：`examples/udp_echo.rs`、`examples/tun_tcp_echo.rs`
-
-### Rust 参考对照
-
-- [ ] 阅读 smoltcp 的 `iface` / `socket` 划分，不直接 fork
-- [ ] 与 `references` 包名、职责一一对照表（写在 `docs/adr/001-rust-layout.md`）
-
----
-
 ## C++ 重写建议
 
 ### 语言与标准
@@ -212,22 +164,50 @@ crates
 
 ---
 
-## 进度跟踪
+## Rust 重写建议
 
-### 共通
+### 语言与生态选型
 
-- [ ] M0 完成
-- [ ] M1 完成
-- [ ] M2 完成
-- [ ] M3 完成
-- [ ] `docs/adr/` 至少 3 篇（缓冲、并发、TCP 简化）
+- [ ] 主线：`std` + workspace 多 crate（见上方目录）
+- [ ] 进阶（可选）：`no_std` + `heapless`/`embedded-io` 分支，与主线 API 对齐
+- [ ] 阻塞模型：推荐 **内部非阻塞 + `async` 对外**（`tokio` 或轻量 executor）；若对标 Netstack，则实现 `Waiter` trait + `Waker`
+- [ ] TUN：[`tun`](https://crates.io/crates/tun) 等成熟 crate，M3 再引入
 
-### Rust
+### 工程实践
 
-- [ ] 仓库 / workspace 初始化
-- [ ] M0–M3（见上表）
+- [ ] `cargo fmt` / `clippy -D warnings` 进 CI
+- [ ] 所有 `unsafe` 必须注释 SAFETY 与不变量；考虑 `miri` 测 unsafe 路径
+- [ ] `cargo fuzz` 覆盖 `header` 解析
+- [ ] 公开 API 仅 `stack` + `Endpoint`；其余 `pub(crate)`
+- [ ] 用 trait 对标 Netstack 的 `LinkEndpoint` / `NetworkProtocol` / `TransportProtocol`
 
-### C++
+### 推荐 crate 划分
 
-- [ ] 仓库 / CMake 初始化
-- [ ] M0–M3（见上表）
+```text
+crates
+├── netstack             # Address, Error, Endpoint trait
+├── stack
+├── header
+├── buffer
+├── link
+├── net
+├── transport
+├── ports
+├── seqnum
+└── adapters             # 可选：类似 std::net 的封装
+```
+
+### Rust 特有任务
+
+- [ ] 定义 `PacketBuffer` 所有权模型（`Bytes` / 自研 chain / `Vec` 起步）
+- [ ] `seqnum` 用 newtype + 单元测试覆盖回绕
+- [ ] TCP 状态机用 `enum` + 显式转换表，避免散落 `bool`
+- [ ] 集成测试：`tokio::test` + channel link
+- [ ] 示例：`examples/udp_echo.rs`、`examples/tun_tcp_echo.rs`
+
+### Rust 参考对照
+
+- [ ] 阅读 smoltcp 的 `iface` / `socket` 划分，不直接 fork
+- [ ] 与 `references` 包名、职责一一对照表（写在 `docs/adr/001-rust-layout.md`）
+
+---
