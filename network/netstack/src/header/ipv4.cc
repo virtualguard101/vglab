@@ -1,3 +1,11 @@
+/**
+ * @file ipv4.cc
+ * @brief IPv4Header 编解码与校验（header 模块）。
+ *
+ * 多字节字段均按 **网络字节序（大端）** 读写，与 RFC 791 及 Wireshark
+ * 显示一致。
+ */
+
 #include "netstack/header/ipv4.hh"
 
 #include "netstack/header/checksum.hh"
@@ -80,6 +88,7 @@ void IPv4Header::SetChecksumField(uint16_t checksum) {
 
 void IPv4Header::SetFlagsFragmentOffset(uint8_t flags,
                                         uint16_t fragment_offset) {
+  // flags 占高 3 位；fragment_offset 以 8 字节为单位存在低 13 位
   const uint16_t v =
       (static_cast<uint16_t>(flags) << 13) | (fragment_offset >> 3);
   WriteBE16(data_.data() + kFlagsFO, v);
@@ -101,6 +110,7 @@ uint16_t IPv4Header::CalculateChecksum() const {
 }
 
 bool IPv4Header::IsChecksumValid() const {
+  // 线上存的是反码；对整头求和应折叠为全 1
   return CalculateChecksum() == 0xffff;
 }
 

@@ -1,3 +1,8 @@
+/**
+ * @file subnet.cc
+ * @brief Subnet 前缀掩码与归属判断（netstack 核心模块）。
+ */
+
 #include "netstack/subnet.hh"
 
 #include <limits>
@@ -7,6 +12,7 @@ namespace netstack {
 
 namespace {
 
+/** @brief 由 CIDR 前缀长度生成 32 位主机序掩码（网络位为 1）。 */
 uint32_t PrefixMask(uint8_t prefix_length) {
   if (prefix_length == 0) {
     return 0;
@@ -17,6 +23,7 @@ uint32_t PrefixMask(uint8_t prefix_length) {
   return std::numeric_limits<uint32_t>::max() << (32 - prefix_length);
 }
 
+/** @brief 将 IPv4Address 转为便于位运算的 32 位值（octets[0] 为最高字节）。 */
 uint32_t AddressToHostU32(IPv4Address addr) {
   return (static_cast<uint32_t>(addr.octets[0]) << 24) |
          (static_cast<uint32_t>(addr.octets[1]) << 16) |
@@ -32,6 +39,7 @@ std::optional<Subnet> Subnet::New(IPv4Address address, uint8_t prefix_length) {
   }
   const uint32_t mask = PrefixMask(prefix_length);
   const uint32_t addr = AddressToHostU32(address);
+  // 主机位必须全 0：addr & ~mask == 0
   if ((addr & ~mask) != 0) {
     return std::nullopt;
   }

@@ -1,3 +1,8 @@
+/**
+ * @file address.cc
+ * @brief IPv4Address 的实现（netstack 核心模块）。
+ */
+
 #include "netstack/address.hh"
 
 #include <charconv>
@@ -9,6 +14,7 @@ namespace netstack {
 std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
   IPv4Address addr{};
   size_t start = 0;
+  // 按 '.' 拆成四段，每段解析为 0～255
   for (int i = 0; i < 4; ++i) {
     const size_t dot = str.find('.', start);
     const std::string_view part =
