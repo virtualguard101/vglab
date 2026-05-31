@@ -19,3 +19,6 @@
 [submodule "infrastructure/cuda/cuda-learning"]
 	path = infrastructure/cuda/cuda-learning
 	url = git@github.com:virtualguard101/cuda-learning.git
+[submodule "network/netstack/references"]
+	path = network/netstack/references
+	url = git@github.com:google/netstack.git
