@@ -2,10 +2,10 @@ format:
     rg --files -g '*.{hh,cc}' -0 | xargs -0 clang-format -i
 
 bootstrap:
-    cmake -B build
+    cmake -S . -B build
 
 build:
     cmake --build build
 
 test:
-    ctest --test-dir build --output-on-failure
+    ctest --test-dir build

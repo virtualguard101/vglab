@@ -69,4 +69,36 @@ inline constexpr IPv4Address kIPv4Broadcast{{0xff, 0xff, 0xff, 0xff}};
  */
 inline constexpr IPv4Address kIPv4Any{{0, 0, 0, 0}};
 
+/**
+ * @brief 链路层地址（通常是 6 字节 MAC 地址）。对标
+ * references/tcpip.LinkAddress。
+ *
+ * 参考实现中 `LinkAddress` 是一个可变长字节切片（Go string），并在长度为 6 时以
+ * `aa:bb:cc:dd:ee:ff` 的形式格式化输出。当前实现先固定为 6 字节 MAC
+ * 地址，以便：
+ * - 结构更直观（以太网常用）；后续若需要可再扩展为可变长。
+ * - 便于作为 key / value 传递与打印。
+ */
+struct LinkAddress {
+  /** @brief 6 字节 MAC 地址，网络序（与报文中的顺序一致）。*/
+  std::array<uint8_t, 6> octets{};
+
+  friend bool operator==(const LinkAddress& a, const LinkAddress& b) {
+    return a.octets == b.octets;
+  }
+
+  /** @brief 输出为 `aa:bb:cc:dd:ee:ff`（小写十六进制）。*/
+  std::string ToString() const;
+
+  /**
+   * @brief 解析 IEEE 802 MAC 地址。
+   *
+   * 支持格式：`aa:bb:cc:dd:ee:ff` 或 `aa-bb-cc-dd-ee-ff`。
+   *
+   * @param s 输入字符串。
+   * @return 解析成功返回 LinkAddress；失败返回 std::nullopt。
+   */
+  static std::optional<LinkAddress> ParseMACAddress(std::string_view s);
+};
+
 }  // namespace netstack

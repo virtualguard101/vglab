@@ -6,6 +6,7 @@
 #include "netstack/address.hh"
 
 #include <charconv>
+#include <iomanip>
 #include <sstream>
 #include <string>
 
@@ -59,6 +60,68 @@ std::string IPv4Address::ToString() const {
      << static_cast<unsigned>(octets[2]) << '.'
      << static_cast<unsigned>(octets[3]);
   return os.str();
+}
+
+std::string LinkAddress::ToString() const {
+  // Match the reference formatting: "%02x:%02x:%02x:%02x:%02x:%02x".
+  std::ostringstream os;
+  os << std::hex << std::nouppercase << std::setfill('0');
+  for (size_t i = 0; i < octets.size(); ++i) {
+    if (i != 0) {
+      os << ':';
+    }
+    os << std::setw(2) << static_cast<unsigned>(octets[i]);
+  }
+  return os.str();
+}
+
+std::optional<LinkAddress> LinkAddress::ParseMACAddress(std::string_view s) {
+  // Split on ':' or '-' (references/tcpip.ParseMACAddress).
+  std::array<std::string_view, 6> parts{};
+  size_t part_count = 0;
+  size_t start = 0;
+
+  auto flush_part = [&](size_t end) -> bool {
+    if (part_count >= parts.size()) {
+      return false;
+    }
+    parts[part_count++] = s.substr(start, end - start);
+    return true;
+  };
+
+  for (size_t i = 0; i < s.size(); ++i) {
+    const char c = s[i];
+    if (c == ':' || c == '-') {
+      if (!flush_part(i)) {
+        return std::nullopt;
+      }
+      start = i + 1;
+    }
+  }
+  if (!flush_part(s.size())) {
+    return std::nullopt;
+  }
+  if (part_count != 6) {
+    return std::nullopt;
+  }
+
+  LinkAddress addr{};
+  for (size_t i = 0; i < 6; ++i) {
+    const auto part = parts[i];
+    if (part.empty() || part.size() > 2) {
+      return std::nullopt;
+    }
+    unsigned int byte = 0;
+    const auto* begin = part.data();
+    const auto* end = begin + part.size();
+    const auto [ptr, ec] = std::from_chars(begin, end, byte, 16);
+    if (ec != std::errc{} || ptr != end || byte > 0xffu) {
+      return std::nullopt;
+    }
+    addr.octets[i] = static_cast<uint8_t>(byte);
+  }
+
+  return addr;
 }
 
 }  // namespace netstack
