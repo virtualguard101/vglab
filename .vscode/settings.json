@@ -1,3 +1,13 @@
 {
-    "cmake.ignoreCMakeListsMissing": true
+  "cmake.ignoreCMakeListsMissing": true,
+
+  // Prefer clangd for C++; avoid duplicate diagnostics from MS C++ extension
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.default.compileCommands": "${workspaceFolder}/misc/idea/p2p/build/compile_commands.json",
+
+  // Path-specific compile DB: vglab/.clangd (PathMatch misc/idea/p2p/.*)
+  "clangd.arguments": [
+    "--background-index",
+    "--clang-tidy"
+  ]
 }

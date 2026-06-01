@@ -1,0 +1,3 @@
+# Used when editing files under misc/idea/p2p/ (clangd walks up from the file).
+CompileFlags:
+  CompilationDatabase: build

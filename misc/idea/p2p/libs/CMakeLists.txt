@@ -1,0 +1,7 @@
+add_subdirectory(common)
+add_subdirectory(protocol)
+add_subdirectory(peer)
+add_subdirectory(index)
+add_subdirectory(discovery)
+add_subdirectory(transfer)
+add_subdirectory(core)

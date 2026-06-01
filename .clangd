@@ -1,0 +1,7 @@
+# Workspace root is vglab/; route clangd to compile database of cpp sub-projects.
+---
+# p2p
+If:
+  PathMatch: misc/idea/p2p/.*
+CompileFlags:
+  CompilationDatabase: misc/idea/p2p/build
