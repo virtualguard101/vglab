@@ -1,6 +1,11 @@
 /**
  * @file address.cc
- * @brief IPv4Address 的实现（netstack 核心模块）。
+ * @brief IPv4Address / LinkAddress 的实现（netstack 核心模块）。
+ *
+ * 本模块处理「人类可读字符串」与「报文线格式字节」之间的转换，
+ * 不涉及 IP 头字段偏移（那属于 header/ipv4）。
+ *
+ * @see include/netstack/address.hh
  */
 
 #include "netstack/address.hh"
@@ -12,10 +17,14 @@
 
 namespace netstack {
 
+/**
+ * @brief 解析点分十进制 IPv4，如 "192.168.1.1"。
+ *
+ * 使用 C++17 std::from_chars 避免异常；每段须完整消耗且 ≤255。
+ */
 std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
   IPv4Address addr{};
   size_t start = 0;
-  // 按 '.' 拆成四段，每段解析为 0～255
   for (int i = 0; i < 4; ++i) {
     const size_t dot = str.find('.', start);
     const std::string_view part =
@@ -39,6 +48,7 @@ std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
   return addr;
 }
 
+/** @brief 从 IPv4 头内 4 字节读取（网络序 = 报文顺序）。*/
 IPv4Address IPv4Address::FromWire(const uint8_t* data) {
   IPv4Address addr{};
   for (size_t i = 0; i < 4; ++i) {
@@ -62,6 +72,7 @@ std::string IPv4Address::ToString() const {
   return os.str();
 }
 
+/** @brief MAC 格式化输出，与 references/tcpip.LinkAddress.String 一致。*/
 std::string LinkAddress::ToString() const {
   // Match the reference formatting: "%02x:%02x:%02x:%02x:%02x:%02x".
   std::ostringstream os;
@@ -75,6 +86,11 @@ std::string LinkAddress::ToString() const {
   return os.str();
 }
 
+/**
+ * @brief 解析 MAC：支持 ':' 或 '-' 分隔的 6 段十六进制。
+ *
+ * 对标 references/tcpip.ParseMACAddress。
+ */
 std::optional<LinkAddress> LinkAddress::ParseMACAddress(std::string_view s) {
   // Split on ':' or '-' (references/tcpip.ParseMACAddress).
   std::array<std::string_view, 6> parts{};

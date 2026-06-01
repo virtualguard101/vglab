@@ -7,6 +7,20 @@
  *
  * @see references/tcpip/stack/registration.go
  * @see docs/module-map.md
+ *
+ * ## M0 入站数据路径（阅读本文件时的主线）
+ *
+ * @code
+ * LinkEndpoint          NetworkDispatcher (NIC)     NetworkProtocol
+ * WritePacket/Inject --> DeliverNetworkPacket -----> HandlePacket (ipv4)
+ *                                                      |
+ *                                                      v
+ *                                            TransportDispatcher (stub/UDP)
+ * @endcode
+ *
+ * - **PacketBuffer**：教学版用 vector 承载；move 传递所有权（见 adr/001）。
+ * - **StackResult**：std::nullopt 表示成功，对标 Go 的 nil *tcpip.Error。
+ * - **LinkEndpoint::Attach**：把 NIC（实现 NetworkDispatcher）注册为入站回调。
  */
 
 #pragma once
@@ -20,7 +34,8 @@
 
 namespace netstack::stack {
 
-/** @brief L3 网络协议号类型，2字节无符号整数（如以太网 EtherType 0x0800 = IPv4）。*/
+/** @brief L3 网络协议号类型，2字节无符号整数（如以太网 EtherType 0x0800 =
+ * IPv4）。*/
 using NetworkProtocolNumber = uint16_t;
 
 /** @brief 传输层协议号类型，单字节无符号整数（如 6 = TCP，17 = UDP）。*/

@@ -1,6 +1,18 @@
 /**
  * @file loopback_dispatch_test.cc
- * @brief M0：loopback → NIC → IPv4 → transport stub。
+ * @brief M0 集成测：loopback / channel → NIC → IPv4 → transport stub。
+ *
+ * ## 学习目标
+ *
+ * 验证两条入站路径都能到达 IPv4 并触发 TransportDispatcher：
+ *
+ * 1. **loopback**：WritePacket 环回（模拟本机发出再接收）；
+ * 2. **channel**：InjectInbound 直接注入（模拟测试仪收包）。
+ *
+ * 两者均使用 **裸 IPv4 帧**（无以太网头），与 docs/m0.md 约定一致。
+ *
+ * @see docs/m0.md
+ * @see tests/m0/ipv4_acceptance_test.cc（更完整的验收用例）
  */
 
 #include <cassert>
@@ -26,6 +38,11 @@ using netstack::stack::Stack;
 
 namespace {
 
+/**
+ * @brief 构造仅含 IPv4 头（20 字节）、上层协议号为 UDP(17) 的测试包。
+ *
+ * total_length=20 表示无传输层载荷，仅验证「能交付到 stub」。
+ */
 std::vector<uint8_t> MakeIPv4UdpPacket() {
   std::vector<uint8_t> buf(20, 0);
   IPv4Header hdr(buf);
@@ -42,6 +59,9 @@ std::vector<uint8_t> MakeIPv4UdpPacket() {
   return buf;
 }
 
+/**
+ * @brief 路径 A：loopback WritePacket → DeliverNetworkPacket → ipv4 → stub。
+ */
 void TestLoopbackDispatch() {
   Stack s;
   auto ipv4 = std::make_unique<Protocol>();
@@ -63,6 +83,9 @@ void TestLoopbackDispatch() {
   assert(transport.Entries()[0].protocol == 17);
 }
 
+/**
+ * @brief 路径 B：channel InjectInbound，不经 WritePacket 环回。
+ */
 void TestChannelInject() {
   Stack s;
   auto ipv4 = std::make_unique<Protocol>();

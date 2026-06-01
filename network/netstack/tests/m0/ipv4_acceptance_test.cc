@@ -1,6 +1,23 @@
 /**
  * @file ipv4_acceptance_test.cc
- * @brief M0 验收：合法/非法 IPv4 注入、统计与 transport 交付。
+ * @brief M0 验收测试：合法/非法 IPv4 注入、统计与 transport 交付。
+ *
+ * ## 对应文档
+ *
+ * 覆盖 docs/m0.md「验收 checklist」中的入站场景，使用 channel 为主、
+ * loopback 为辅。
+ *
+ * ## 统计分层
+ *
+ * | 丢弃原因              | 计数位置                    |
+ * |-----------------------|-----------------------------|
+ * | 未知 L3 协议号        | NIC::unknown_protocol_rcvd_ |
+ * | 短于 MinimumPacketSize| NIC::malformed_rcvd_          |
+ * | IPv4 校验/分片等      | ipv4::malformed_packets_*     |
+ * | 成功交付传输层        | ipv4::packets_delivered_      |
+ *
+ * @see docs/m0.md
+ * @see ctest -R m0_ipv4_acceptance
  */
 
 #include <cassert>
@@ -26,6 +43,12 @@ using netstack::stack::Stack;
 
 namespace {
 
+/**
+ * @brief 构造指定 TotalLength 与 Protocol 字段的 IPv4 包（含正确头校验和）。
+ *
+ * @param total_length 整包长度（头+载荷），须 ≥ 20。
+ * @param protocol 上层协议号，如 17=UDP。
+ */
 std::vector<uint8_t> MakeIPv4Packet(uint16_t total_length, uint8_t protocol) {
   std::vector<uint8_t> buf(total_length, 0);
   IPv4Header hdr(buf);
@@ -42,6 +65,11 @@ std::vector<uint8_t> MakeIPv4Packet(uint16_t total_length, uint8_t protocol) {
   return buf;
 }
 
+/**
+ * @brief 测试夹具：组装 Stack + IPv4 + RecordingTransportDispatcher + 链路。
+ *
+ * @param use_channel true 用 channel（InjectInbound）；false 用 loopback。
+ */
 struct M0Fixture {
   Stack stack;
   Protocol* ipv4{nullptr};
@@ -65,6 +93,7 @@ struct M0Fixture {
     }
   }
 
+  /** @brief 按链路类型选择 InjectInbound 或 loopback WritePacket。 */
   void Inject(netstack::stack::NetworkProtocolNumber proto,
               std::vector<uint8_t> bytes) {
     if (channel != nullptr) {
@@ -79,10 +108,12 @@ struct M0Fixture {
   }
 };
 
+/**
+ * @brief 合法包：28 字节总长 → 剥头后 8 字节载荷交付给 stub（protocol=17）。
+ */
 void TestValidIpv4Delivery() {
   M0Fixture f(true);
-  f.Inject(netstack::header::kIPv4ProtocolNumber,
-           MakeIPv4Packet(28, 17));  // 8-byte payload after header
+  f.Inject(netstack::header::kIPv4ProtocolNumber, MakeIPv4Packet(28, 17));
 
   assert(f.ipv4->PacketsDelivered() == 1);
   assert(f.transport.Entries().size() == 1);
@@ -96,6 +127,9 @@ void TestValidIpv4Delivery() {
   assert(stats.ipv4_malformed_received == 0);
 }
 
+/**
+ * @brief 破坏校验和（翻转 checksum 字段某一字节）→ IPv4 层丢弃。
+ */
 void TestBadChecksumDropped() {
   M0Fixture f(true);
   auto pkt = MakeIPv4Packet(20, 17);
@@ -111,6 +145,9 @@ void TestBadChecksumDropped() {
   assert(stats.nic.malformed_rcvd == 0);
 }
 
+/**
+ * @brief 10 字节包短于 IPv4 MinimumPacketSize(20) → NIC 层丢弃。
+ */
 void TestShortPacketDropped() {
   M0Fixture f(true);
   std::vector<uint8_t> short_pkt(10, 0);
@@ -124,9 +161,12 @@ void TestShortPacketDropped() {
   assert(stats.nic.malformed_rcvd == 1);
 }
 
+/**
+ * @brief 注入 ARP EtherType(0x0806) 而栈只注册 IPv4 → unknown_protocol。
+ */
 void TestUnknownProtocol() {
   M0Fixture f(true);
-  f.Inject(0x0806, MakeIPv4Packet(20, 17));  // ARP ethertype, not IPv4 handler
+  f.Inject(0x0806, MakeIPv4Packet(20, 17));
 
   assert(f.transport.Entries().empty());
   assert(f.ipv4->PacketsDelivered() == 0);
@@ -135,6 +175,7 @@ void TestUnknownProtocol() {
   assert(stats.nic.unknown_protocol_rcvd == 1);
 }
 
+/** @brief loopback 路径下合法最小 IPv4 包也能到达 stub。 */
 void TestLoopbackValidPath() {
   M0Fixture f(false);
   f.Inject(netstack::header::kIPv4ProtocolNumber, MakeIPv4Packet(20, 17));

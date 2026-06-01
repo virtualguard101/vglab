@@ -1,6 +1,16 @@
 /**
  * @file subnet.cc
  * @brief Subnet 前缀掩码与归属判断（netstack 核心模块）。
+ *
+ * ## CIDR 语义
+ *
+ * - `prefix_length` 表示网络位个数；例如 /8 掩码为 255.0.0.0。
+ * - `Subnet::New` 要求 address 的**主机位全 0**（网络地址规范化）。
+ * - `Contains` 用 `(addr & mask) == (network & mask)` 判断成员关系。
+ *
+ * `kIPv4EmptySubnet`（0.0.0.0/0）用于默认路由，见 subnet.hh。
+ *
+ * @see include/netstack/subnet.hh
  */
 
 #include "netstack/subnet.hh"

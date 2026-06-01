@@ -2,8 +2,14 @@
  * @file ipv4.cc
  * @brief IPv4Header 编解码与校验（header 模块）。
  *
- * 多字节字段均按 **网络字节序（大端）** 读写，与 RFC 791 及 Wireshark
- * 显示一致。
+ * 多字节字段均按 **网络字节序（大端）** 读写，与 RFC 791 及 Wireshark 一致。
+ *
+ * ## 读路径 vs 写路径
+ *
+ * - **读**：`SourceAddress()` 等从 `data_` span 解析，不分配堆内存。
+ * - **写**：`Encode()` / `SetTotalLength()` 等修改底层 vector（由调用方持有）。
+ *
+ * @see include/netstack/header/ipv4.hh
  */
 
 #include "netstack/header/ipv4.hh"
@@ -14,10 +20,12 @@ namespace netstack::header {
 
 namespace {
 
+/** @brief 从缓冲区读取大端 uint16（网络序）。*/
 uint16_t ReadBE16(const uint8_t* p) {
   return (static_cast<uint16_t>(p[0]) << 8) | p[1];
 }
 
+/** @brief 向缓冲区写入大端 uint16。*/
 void WriteBE16(uint8_t* p, uint16_t v) {
   p[0] = static_cast<uint8_t>(v >> 8);
   p[1] = static_cast<uint8_t>(v);
@@ -32,6 +40,7 @@ int IPv4Header::IPVersion(std::span<const uint8_t> data) {
   return static_cast<int>(data[kVersIHL] >> 4);
 }
 
+/** @brief IHL 低 4 位 × 4 = 头长度（字节）。*/
 uint8_t IPv4Header::HeaderLength() const {
   return (data_[kVersIHL] & 0x0f) * 4;
 }
@@ -46,6 +55,7 @@ uint8_t IPv4Header::Flags() const {
 
 uint8_t IPv4Header::TTL() const { return data_[kTTL]; }
 
+/** @brief RFC 791：线上 13 位单位为 8 字节，此处还原为字节偏移。*/
 uint16_t IPv4Header::FragmentOffset() const {
   return static_cast<uint16_t>(ReadBE16(data_.data() + kFlagsFO) & 0x1fff) << 3;
 }
@@ -104,16 +114,24 @@ void IPv4Header::SetDestinationAddress(IPv4Address addr) {
   addr.WriteWire(data_.data() + kDstAddr);
 }
 
+/**
+ * @brief 对当前头（校验和字段应为 0）求 RFC 1071 和，**未取反**。
+ */
 uint16_t IPv4Header::CalculateChecksum() const {
   const auto hlen = HeaderLength();
   return Checksum(data_.first(hlen), 0);
 }
 
+/**
+ * @brief 接收校验：对含 checksum 字段的整头求和，折叠后须为 0xFFFF。
+ */
 bool IPv4Header::IsChecksumValid() const {
-  // 线上存的是反码；对整头求和应折叠为全 1
   return CalculateChecksum() == 0xffff;
 }
 
+/**
+ * @brief 结构合法性（不查 checksum）：版本 4、IHL、TotalLength 与 buffer 关系。
+ */
 bool IPv4Header::IsValid(size_t packet_size) const {
   if (data_.size() < kIPv4MinimumSize) {
     return false;
@@ -147,6 +165,9 @@ void IPv4Header::Encode(const IPv4Fields& fields) {
   SetDestinationAddress(fields.dst_addr);
 }
 
+/**
+ * @brief 仅更新 Total Length 与 Checksum（批量相似包时避免重算整头）。
+ */
 void IPv4Header::EncodePartial(uint16_t partial_checksum,
                                uint16_t total_length) {
   SetTotalLength(total_length);
@@ -155,6 +176,7 @@ void IPv4Header::EncodePartial(uint16_t partial_checksum,
   SetChecksumField(static_cast<uint16_t>(~folded));
 }
 
+/** @brief 224.0.0.0/4：首字节高 4 位为 1110。*/
 bool IsV4MulticastAddress(IPv4Address addr) {
   return (addr.octets[0] & 0xf0) == 0xe0;
 }
