@@ -1,0 +1,3 @@
+# Exclude course / vendored Python from GitHub language stats (Linguist).
+network/cs168/distance-vector/netvis/** linguist-vendored
+network/cs168/distance-vector/simulator/** linguist-vendored
