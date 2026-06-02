@@ -1,6 +1,10 @@
 # vglab
 
-Lab repo for Computer Science self learning. 
+Lab repo for Computer Science self-learning. Contains codes of common scripts, teaching code, minimal verification, PoCs(Proof of Concepts), and MVPs(Minimum Viable Products) for Ideas. Mainly writen in C++, Python, Go, and Rust.
+
+- **Lab Guidelines**：[LAB.md](LAB.md)
+
+- **C++ LSP / clangd Troubleshooting**：[TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Getted Started
 
