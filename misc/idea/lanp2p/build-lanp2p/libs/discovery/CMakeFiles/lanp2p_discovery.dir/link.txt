@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblanp2p_discovery.a CMakeFiles/lanp2p_discovery.dir/src/service.cpp.o
+/usr/bin/ranlib liblanp2p_discovery.a

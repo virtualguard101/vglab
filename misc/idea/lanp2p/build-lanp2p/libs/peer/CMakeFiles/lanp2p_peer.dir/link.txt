@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblanp2p_peer.a CMakeFiles/lanp2p_peer.dir/src/registry.cpp.o
+/usr/bin/ranlib liblanp2p_peer.a

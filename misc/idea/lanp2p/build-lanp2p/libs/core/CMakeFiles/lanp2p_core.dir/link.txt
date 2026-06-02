@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblanp2p_core.a CMakeFiles/lanp2p_core.dir/src/node.cpp.o
+/usr/bin/ranlib liblanp2p_core.a

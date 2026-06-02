@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblanp2p_common.a CMakeFiles/lanp2p_common.dir/src/identity.cpp.o
+/usr/bin/ranlib liblanp2p_common.a

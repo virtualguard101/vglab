@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblanp2p_index.a CMakeFiles/lanp2p_index.dir/src/file_index.cpp.o
+/usr/bin/ranlib liblanp2p_index.a

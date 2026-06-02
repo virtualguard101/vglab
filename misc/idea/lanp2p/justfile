@@ -1,0 +1,12 @@
+format:
+    rg --files -g '*.{hh,cc,cpp,hpp}' -0 | xargs -0 clang-format -i
+
+bootstrap:
+    cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    ln -sfn build/compile_commands.json compile_commands.json
+
+build: bootstrap
+    cmake --build build -j
+
+test:
+    ctest --test-dir build
