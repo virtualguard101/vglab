@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblanp2p_transfer.a CMakeFiles/lanp2p_transfer.dir/src/tcp_channel.cpp.o CMakeFiles/lanp2p_transfer.dir/src/server.cpp.o CMakeFiles/lanp2p_transfer.dir/src/client.cpp.o
-/usr/bin/ranlib liblanp2p_transfer.a

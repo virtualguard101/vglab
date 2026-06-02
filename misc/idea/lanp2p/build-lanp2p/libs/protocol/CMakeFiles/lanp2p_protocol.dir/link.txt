@@ -1,2 +1,0 @@
-/usr/bin/ar qc liblanp2p_protocol.a CMakeFiles/lanp2p_protocol.dir/src/codec.cpp.o
-/usr/bin/ranlib liblanp2p_protocol.a
