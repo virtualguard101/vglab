@@ -1,6 +1,19 @@
 /**
  * @file endpoint.cc
  * @brief UDP echo endpoint（M1）。
+ *
+ * ## Bind 流程
+ *
+ * 1. `PortManager::Reserve` 防止端口冲突；
+ * 2. `Stack::RegisterTransportEndpoint` 写入 demuxer 表；
+ * 3. 记录 nic_id / local_addr / port 供回射使用。
+ *
+ * ## HandlePacket（echo）
+ *
+ * 入参 `pkt.Data()` = [UDP 头 | payload]（IPv4 已剥）。
+ * 出站构造新 UDP 段，再经 IPv4 封装；**不**实现接收队列与 Read()。
+ *
+ * @see include/netstack/transport/udp/endpoint.hh
  */
 
 #include "netstack/transport/udp/endpoint.hh"
@@ -45,9 +58,15 @@ stack::StackResult Endpoint::Bind(stack::NICID nic_id, IPv4Address local_addr,
   return std::nullopt;
 }
 
+/**
+ * @brief 同步 echo：剥 UDP 载荷 → 交换端口 → SendPacket。
+ *
+ * @param route 入站 Route（local=目的 IP，remote=源 IP，由 ipv4::HandlePacket
+ * 填写）。
+ * @param id demuxer 填写的四元组（remote_port = 客户端源端口）。
+ */
 void Endpoint::HandlePacket(stack::Route* route, stack::TransportEndpointID id,
-                          stack::PacketBuffer pkt) {
-  (void)id;
+                            stack::PacketBuffer pkt) {
   if (!bound_ || stack_ == nullptr || route == nullptr) {
     return;
   }

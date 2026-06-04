@@ -1,6 +1,18 @@
 /**
  * @file stack.hh
- * @brief 协议栈：NIC、网络/传输协议注册与分发（M1）。
+ * @brief 协议栈：NIC、网络/传输协议注册与分发（M0/M1）。
+ *
+ * ## M1 完整入站路径
+ *
+ * @code
+ * LinkEndpoint → NIC::DeliverNetworkPacket
+ *   → ipv4::HandlePacket（填 Route 源/目的 IP）
+ *   → Stack::DeliverTransportPacket
+ *   → TransportDemuxer → udp::Endpoint
+ * @endcode
+ *
+ * IPv4 注册时通过 `SetTransportDispatcherIfUnset(this)` 接入 demuxer，
+ * 不覆盖 M0 测试手动设置的 `RecordingTransportDispatcher`。
  *
  * @see docs/m0.md
  * @see docs/m1.md
@@ -36,7 +48,7 @@ struct StackStats {
 };
 
 /**
- * @brief 协议栈：实现 TransportDispatcher，将 IPv4 剥头后交给 demuxer。
+ * @brief 协议栈：实现 TransportDispatcher，拥有 demuxer 与 PortManager。
  */
 class Stack : public TransportDispatcher {
  public:
@@ -47,7 +59,7 @@ class Stack : public TransportDispatcher {
 
   NICID CreateNIC(std::unique_ptr<LinkEndpoint> link_ep);
 
-  /** @brief 在 NIC 上登记本机 IPv4 地址（M1 最小实现，可重复 Add）。 */
+  /** @brief 登记 NIC 上的本机 IPv4（M1 最小；可多次添加）。 */
   StackResult AddAddress(NICID nic_id, IPv4Address addr);
 
   NIC* GetNIC(NICID id);

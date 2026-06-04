@@ -2,7 +2,7 @@
  * @file protocol.cc
  * @brief IPv4 网络层入站处理（对标 references/tcpip/network/ipv4/ipv4.go）。
  *
- * ## HandlePacket 流水线（M0）
+ * ## HandlePacket 流水线（M0/M1）
  *
  * 1. 长度与 `IsValid` 结构检查（版本、IHL、TotalLength）；
  * 2. **显式** `IsChecksumValid()`（教学栈比参考实现更严）；
@@ -86,6 +86,7 @@ void Protocol::HandlePacket(stack::Route* route, stack::PacketBuffer pkt) {
   const auto transport_proto =
       static_cast<stack::TransportProtocolNumber>(ip.Protocol());
 
+  // M1：为传输层 demux 填写「本机 / 对端」IP（剥头前从 IPv4 头读取）
   if (route != nullptr) {
     route->net_proto = header::kIPv4ProtocolNumber;
     const auto src = ip.SourceAddress();

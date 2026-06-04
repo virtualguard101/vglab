@@ -8,5 +8,5 @@ bootstrap:
 build: bootstrap
     cmake --build build
 
-test:
+test: build
     ctest --test-dir build

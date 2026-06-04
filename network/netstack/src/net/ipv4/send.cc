@@ -1,6 +1,17 @@
 /**
  * @file send.cc
  * @brief IPv4 出站路径。
+ *
+ * ## 封装步骤
+ *
+ * 1. total_length = 20 + len(l4_bytes)；
+ * 2. 填写 IPv4Fields，计算头校验和（~CalculateChecksum）；
+ * 3. 拷贝 l4 到偏移 20；
+ * 4. `LinkEndpoint::WritePacket(..., kIPv4ProtocolNumber, pkt)`。
+ *
+ * loopback 会环回入站；**channel** 则只入 outbound 队列（M1 测试用）。
+ *
+ * @see include/netstack/net/ipv4/send.hh
  */
 
 #include "netstack/net/ipv4/send.hh"

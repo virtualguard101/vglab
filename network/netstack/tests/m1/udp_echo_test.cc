@@ -1,6 +1,22 @@
 /**
  * @file udp_echo_test.cc
  * @brief M1 验收：channel 注入 IPv4/UDP → echo → 出站队列。
+ *
+ * ## 学习目标
+ *
+ * 1. 手工拼接 **IPv4 + UDP** 裸帧（无以太网头）；
+ * 2. 理解 Bind(7) 与 demux 键 (10.0.0.1, port 7)；
+ * 3. 从 channel **出站队列** 解析回显（目的 IP/端口、payload）。
+ *
+ * ## 拓扑
+ *
+ * @code
+ *  Inject: 10.0.0.2:12345 → 10.0.0.1:7  payload "ping"
+ *  Outbound: 10.0.0.1:7 → 10.0.0.2:12345  payload "ping"
+ * @endcode
+ *
+ * @see docs/m1.md
+ * @see ctest -R m1_udp_echo
  */
 
 #include <cassert>
@@ -30,6 +46,9 @@ using netstack::stack::Stack;
 
 namespace {
 
+/**
+ * @brief 构造完整 IPv4  datagram（头 + UDP 头 + payload）。
+ */
 std::vector<uint8_t> MakeIpv4Udp(IPv4Address src, IPv4Address dst,
                                  uint16_t sport, uint16_t dport,
                                  std::span<const uint8_t> payload) {
@@ -66,14 +85,15 @@ std::vector<uint8_t> MakeIpv4Udp(IPv4Address src, IPv4Address dst,
   return buf;
 }
 
+/** @brief 从出站帧解析目的 IP、UDP 目的端口与载荷。 */
 bool ParseEcho(const std::vector<uint8_t>& frame, IPv4Address& dst,
                uint16_t& dport, std::string& payload) {
-  if (frame.size() < netstack::header::kIPv4MinimumSize +
-                        netstack::header::kUDPMinimumSize) {
+  if (frame.size() <
+      netstack::header::kIPv4MinimumSize + netstack::header::kUDPMinimumSize) {
     return false;
   }
-  IPv4Header ip(std::span<uint8_t>(const_cast<uint8_t*>(frame.data()),
-                                   frame.size()));
+  IPv4Header ip(
+      std::span<uint8_t>(const_cast<uint8_t*>(frame.data()), frame.size()));
   if (!ip.IsValid(frame.size()) || !ip.IsChecksumValid()) {
     return false;
   }
@@ -126,6 +146,7 @@ void TestUdpEchoOnChannel() {
   assert(echoed == "ping");
 }
 
+/** @brief 未 Bind 的端口不应产生出站包。 */
 void TestNoListenerNoOutbound() {
   Stack s;
   s.AddNetworkProtocol(std::make_unique<Protocol>());

@@ -1,6 +1,6 @@
 # netstack
 
-Netstack 的 C++ 教学实现。目录布局见 [`todo.md`](todo.md) 中「C++ 重写建议」一节；模块职责见 [`docs/module-map.md`](docs/module-map.md)。
+Netstack 的 C++ 教学实现。目录布局见 [`plan.md`](plan.md) 中「C++ 重写建议」一节；模块职责见 [`docs/module-map.md`](docs/module-map.md)。
 
 ## 目录说明
 

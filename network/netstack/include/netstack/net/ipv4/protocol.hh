@@ -5,7 +5,7 @@
  * 实现 stack::NetworkProtocol，负责 M0 入站路径：
  * 校验 IPv4 头 → 剥头 → DeliverTransportPacket。
  *
- * 出站 WritePacket 将在 M1 与 UDP echo 一并补齐（见 docs/m1.md）。
+ * 出站由 `net::ipv4::SendPacket` 完成（M1）；入站会填写 Route 的源/目的 IP。
  *
  * @see src/net/ipv4/protocol.cc
  * @see references/tcpip/network/ipv4/ipv4.go

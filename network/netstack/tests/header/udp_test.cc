@@ -1,12 +1,21 @@
 /**
  * @file udp_test.cc
  * @brief UDP 头单元测试（M1）。
+ *
+ * ## 学习目标
+ *
+ * - UDP 头固定 8 字节，Length 含头本身；
+ * - Length 不能大于实际缓冲区，否则 `IsValid` 失败。
+ *
+ * @code
+ * ctest --test-dir build -R header_udp
+ * @endcode
  */
+
+#include "netstack/header/udp.hh"
 
 #include <cassert>
 #include <vector>
-
-#include "netstack/header/udp.hh"
 
 using netstack::header::UDPFields;
 using netstack::header::UDPHeader;

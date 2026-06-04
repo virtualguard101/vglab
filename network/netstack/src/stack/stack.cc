@@ -1,5 +1,8 @@
 /**
  * @file stack.cc
+ * @brief 协议栈核心实现（M0/M1）。
+ *
+ * @see include/netstack/stack/stack.hh
  */
 
 #include "netstack/stack/stack.hh"
@@ -11,6 +14,10 @@ namespace netstack::stack {
 
 Stack::Stack() = default;
 
+/**
+ * @brief 注册网络协议；IPv4 自动挂接本对象为
+ * TransportDispatcher（若尚未设置）。
+ */
 void Stack::AddNetworkProtocol(std::unique_ptr<NetworkProtocol> protocol) {
   const auto number = protocol->Number();
   protocols_[number] = std::move(protocol);
@@ -98,12 +105,14 @@ void Stack::ReleasePort(NetworkProtocolNumber net,
   port_manager_.Release(net, trans, port);
 }
 
-StackResult Stack::RegisterTransportEndpoint(
-    NetworkProtocolNumber net, TransportProtocolNumber trans,
-    TransportEndpointID id, TransportEndpoint* endpoint) {
+StackResult Stack::RegisterTransportEndpoint(NetworkProtocolNumber net,
+                                             TransportProtocolNumber trans,
+                                             TransportEndpointID id,
+                                             TransportEndpoint* endpoint) {
   return demuxer_.RegisterEndpoint(net, trans, id, endpoint);
 }
 
+/** @brief 网络层剥头后的传输层入口（由 ipv4::HandlePacket 调用）。 */
 void Stack::DeliverTransportPacket(Route* route,
                                    TransportProtocolNumber protocol,
                                    PacketBuffer pkt) {
