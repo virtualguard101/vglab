@@ -4,7 +4,7 @@ Lab repo for Computer Science self-learning. Contains codes of common scripts, t
 
 - **Lab Guidelines**：[LAB.md](LAB.md)
 
-- **C++ LSP / clangd Troubleshooting**：[TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Common Troubleshooting**：[TROUBLESHOOTING.md](TROUBLESHOOTING.md)
 
 ## Getted Started
 
