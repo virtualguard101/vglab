@@ -51,7 +51,6 @@ void Protocol::ParseAddresses(const std::vector<uint8_t>& packet,
  * 头开始，返回前仅余传输层载荷。
  */
 void Protocol::HandlePacket(stack::Route* route, stack::PacketBuffer pkt) {
-  (void)route;
   auto& data = pkt.Data();
   if (data.size() < header::kIPv4MinimumSize) {
     ++malformed_packets_received_;
@@ -86,6 +85,14 @@ void Protocol::HandlePacket(stack::Route* route, stack::PacketBuffer pkt) {
 
   const auto transport_proto =
       static_cast<stack::TransportProtocolNumber>(ip.Protocol());
+
+  if (route != nullptr) {
+    route->net_proto = header::kIPv4ProtocolNumber;
+    const auto src = ip.SourceAddress();
+    const auto dst = ip.DestinationAddress();
+    route->remote_address.assign(src.octets.begin(), src.octets.end());
+    route->local_address.assign(dst.octets.begin(), dst.octets.end());
+  }
 
   // 保存网络头副本供出站或调试；data 剥头后仅余 [hlen, tlen) 载荷
   pkt.NetworkHeader().assign(data.begin(), data.begin() + hlen);

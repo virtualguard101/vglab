@@ -66,6 +66,13 @@ class NetworkProtocol {
     transport_dispatcher_ = dispatcher;
   }
 
+  /** @brief 仅在尚未设置时绑定 dispatcher（避免覆盖测试桩）。 */
+  void SetTransportDispatcherIfUnset(TransportDispatcher* dispatcher) {
+    if (transport_dispatcher_ == nullptr) {
+      transport_dispatcher_ = dispatcher;
+    }
+  }
+
  protected:
   TransportDispatcher* transport_dispatcher_{nullptr};
 };
