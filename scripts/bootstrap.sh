@@ -20,7 +20,7 @@ fi
 
 # install dependencies
 uv sync
-echo 'dependencies installed successfully'
+echo 'Python dependencies installed successfully'
 
 # reload the shell
 exec $SHELL

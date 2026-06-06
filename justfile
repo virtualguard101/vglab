@@ -11,3 +11,7 @@ push:
 
 sync:
     git submodule update --remote --merge
+
+bootstrap:
+    git submodule update --init --recursive
+    ./scripts/bootstrap.sh

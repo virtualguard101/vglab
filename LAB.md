@@ -25,18 +25,19 @@ This repo follows the following guidelines:
 
 ## Top-level Directories
 
-| Path | Purpose | Example |
-|------|------|------|
-| `ai/` | AI-related | `tiny-agent` |
-| `cca/` | Computer Architecture | `nand2tetris`, `cs61c` |
-| `database/` | Database | `cmu15-445`, etc. |
-| `infrastructure/` | Infrastructure / Cloud Native | `cuda-learning`, etc. |
-| `lang/` | PL(Programming Language), Syntax, Small Demos (can be thrown away, can be bad) | `lang/rust/ownership`, `lang/golang/echo` |
-| `misc/idea/` | Ideas MVPs / PoCs | `p2p`, `operator-rs` |
-| `misc/legacy/` | Archived, Some Miscellaneous Code | School Assignments / Lab Coding, etc. |
-| `network/` | Computer Network, Protocol PoCs, etc. | `netstack`, `tcpip`, `cs168`, `traceroute-go` |
-| `os/` | Operating System | `ostep-code` |
-| `scripts/` | Cross-project Scripts | — |
+| Path | Purpose |
+|------|------|
+| `ai/` | AI-related |
+| `cca/` | Computer Architecture |
+| `database/` | Database |
+| `dsa/` | Data Structure and Algorithm |
+| `infrastructure/` | Infrastructure / Cloud Native |
+| `lang/` | PL(Programming Language), Syntax, Small Demos (can be thrown away, can be bad) |
+| `misc/idea/` | Ideas MVPs / PoCs |
+| `misc/legacy/` | Archived, Some Miscellaneous Code |
+| `network/` | Computer Network, Protocol PoCs, etc. |
+| `os/` | Operating System |
+| `scripts/` | Cross-project Scripts |
 
 `drafts/` and `trash/` are only local drafts, and are ignored in `.gitignore`.
 
