@@ -26,7 +26,7 @@
 |------|------|------|
 | M0 | 链路环回 + IPv4 解析/校验 | 单元测试喂原始帧（详见 [`docs/m0.md`](docs/m0.md)） |
 | M1 | UDP echo | `channel` 式 fake link，无 TUN（详见 [`docs/m1.md`](docs/m1.md)） |
-| M2 | TCP 单连接（简化版） | 与参考用例或 `nc` 少量场景对比 |
+| M2 | TCP 单连接（简化版） | channel 上握手+数据+关闭（详见 [`docs/m2.md`](docs/m2.md)） |
 | M3 | TUN 对接宿主 | `tun_tcp_echo` 级别 demo |
 | 扩展 | ARP、分片、IPv6、iptables | 单独 milestone，不阻塞主线 |
 

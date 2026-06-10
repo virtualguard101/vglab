@@ -22,5 +22,9 @@
 
 ## M2：TCP 单连接（简化）
 
-- [ ] `transport/tcp/` 极简状态机
+实施指南：[`docs/m2.md`](docs/m2.md)
+
+- [ ] `seqnum/` + `header/tcp`
+- [ ] `transport/tcp/` 极简状态机（SYN → data → FIN）
+- [ ] Demuxer TCP 分支（Listen + 四元组）
 - [ ] 集成测试（channel link）
