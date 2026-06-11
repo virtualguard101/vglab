@@ -1,17 +1,12 @@
 /**
- * @file tcp_handshake_test.cc
- * @brief M2 验收：Listener 被动打开三次握手（channel）。
+ * @file tcp_backlog_test.cc
+ * @brief M2+ 验收：Listener backlog=1 时第二条 SYN 被丢弃。
  *
- * ## RFC 793 路径
- *
- * CLOSED → LISTEN → SYN-RECEIVED → ESTABLISHED（Connection 经 Accept 取出）
- *
- * @see docs/tcp-rfc793-states.md
- * @see ctest -R m2_tcp_handshake
+ * @see docs/m2+.md
+ * @see ctest -R m2_tcp_backlog
  */
 
 #include <cassert>
-#include <cstdint>
 
 #include "netstack/header/tcp.hh"
 #include "netstack/link/channel.hh"
@@ -27,14 +22,11 @@ using netstack::link::NewChannel;
 using netstack::stack::PacketBuffer;
 using netstack::stack::Stack;
 using netstack::test::m2::MakeIpv4Tcp;
-using netstack::test::m2::ParsedTcp;
-using netstack::test::m2::ParseIpv4Tcp;
 using netstack::test::m2::TcpSegmentFields;
-using netstack::transport::tcp::TcpState;
 
 namespace {
 
-void TestPassiveHandshake() {
+void TestBacklogOne() {
   Stack s;
   s.AddNetworkProtocol(std::make_unique<netstack::net::ipv4::Protocol>());
   s.AddTransportProtocol(
@@ -42,56 +34,37 @@ void TestPassiveHandshake() {
 
   auto channel = NewChannel(16, 1500, LinkAddress{});
   auto* ch = dynamic_cast<netstack::link::ChannelEndpoint*>(channel.get());
-  assert(ch != nullptr);
-
   const auto nic_id = s.CreateNIC(std::move(channel));
   s.AddAddress(nic_id, IPv4Address{{10, 0, 0, 1}});
 
   netstack::transport::tcp::Listener listener(&s);
-  assert(!listener.Listen(nic_id, IPv4Address{{10, 0, 0, 1}}, 80).has_value());
+  assert(
+      !listener.Listen(nic_id, IPv4Address{{10, 0, 0, 1}}, 80, 1).has_value());
 
-  const IPv4Address client{{10, 0, 0, 2}};
   const IPv4Address server_ip{{10, 0, 0, 1}};
 
   ch->InjectInbound(netstack::header::kIPv4ProtocolNumber,
                     PacketBuffer(MakeIpv4Tcp(
-                        client, server_ip, 50000, 80,
+                        IPv4Address{{10, 0, 0, 2}}, server_ip, 50000, 80,
                         TcpSegmentFields{.flags = static_cast<uint8_t>(
                                              netstack::header::TCPFlags::kSyn),
                                          .seq = 1000,
                                          .ack = 0})));
-
-  auto outbound = ch->DrainOutbound();
-  assert(outbound.size() == 1);
-
-  ParsedTcp syn_ack{};
-  assert(ParseIpv4Tcp(outbound.front().pkt.Data(), syn_ack));
-  assert(syn_ack.dst == client);
-  assert(syn_ack.dport == 50000);
-  assert((syn_ack.flags &
-          static_cast<uint8_t>(netstack::header::TCPFlags::kSyn)) != 0);
-  assert((syn_ack.flags &
-          static_cast<uint8_t>(netstack::header::TCPFlags::kAck)) != 0);
-  assert(syn_ack.ack == 1001);
+  assert(ch->DrainOutbound().size() == 1);
 
   ch->InjectInbound(netstack::header::kIPv4ProtocolNumber,
                     PacketBuffer(MakeIpv4Tcp(
-                        client, server_ip, 50000, 80,
+                        IPv4Address{{10, 0, 0, 3}}, server_ip, 50001, 80,
                         TcpSegmentFields{.flags = static_cast<uint8_t>(
-                                             netstack::header::TCPFlags::kAck),
-                                         .seq = 1001,
-                                         .ack = syn_ack.seq + 1})));
-
-  auto* conn = listener.Accept();
-  assert(conn != nullptr);
-  assert(conn->State() == TcpState::kEstablished);
-  assert(conn->Iss() == syn_ack.seq);
+                                             netstack::header::TCPFlags::kSyn),
+                                         .seq = 2000,
+                                         .ack = 0})));
   assert(ch->DrainOutbound().empty());
 }
 
 }  // namespace
 
 int main() {
-  TestPassiveHandshake();
+  TestBacklogOne();
   return 0;
 }

@@ -47,7 +47,8 @@ target_include_directories(netstack_transport_udp PUBLIC include)
 
 add_library(netstack_transport_tcp
   src/transport/tcp/protocol.cc
-  src/transport/tcp/endpoint.cc
+  src/transport/tcp/connection.cc
+  src/transport/tcp/listener.cc
 )
 target_link_libraries(netstack_transport_tcp PUBLIC netstack_stack)
 target_include_directories(netstack_transport_tcp PUBLIC include)
@@ -88,6 +89,14 @@ add_executable(netstack_m2_tcp_transfer_test tests/m2/tcp_transfer_test.cc)
 target_link_libraries(netstack_m2_tcp_transfer_test PRIVATE netstack_link netstack_transport_tcp)
 target_include_directories(netstack_m2_tcp_transfer_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_executable(netstack_m2_tcp_connect_test tests/m2/tcp_connect_test.cc)
+target_link_libraries(netstack_m2_tcp_connect_test PRIVATE netstack_link netstack_transport_tcp)
+target_include_directories(netstack_m2_tcp_connect_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(netstack_m2_tcp_backlog_test tests/m2/tcp_backlog_test.cc)
+target_link_libraries(netstack_m2_tcp_backlog_test PRIVATE netstack_link netstack_transport_tcp)
+target_include_directories(netstack_m2_tcp_backlog_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 enable_testing()
 add_test(NAME header_ipv4 COMMAND netstack_header_test)
 add_test(NAME header_udp COMMAND netstack_header_udp_test)
@@ -98,3 +107,5 @@ add_test(NAME m0_ipv4_acceptance COMMAND netstack_m0_test)
 add_test(NAME m1_udp_echo COMMAND netstack_m1_test)
 add_test(NAME m2_tcp_handshake COMMAND netstack_m2_tcp_handshake_test)
 add_test(NAME m2_tcp_transfer COMMAND netstack_m2_tcp_transfer_test)
+add_test(NAME m2_tcp_connect COMMAND netstack_m2_tcp_connect_test)
+add_test(NAME m2_tcp_backlog COMMAND netstack_m2_tcp_backlog_test)

@@ -1,36 +1,30 @@
 /**
  * @file transport.hh
- * @brief 传输层接口与 demuxer（M1 UDP / M2 TCP）。
+ * @brief 传输层接口与 demuxer（M1 UDP / M2 TCP / M2+ 四元组）。
  *
  * ## 分层位置
  *
  * IPv4 `HandlePacket` 剥掉 L3 头后，由 `Stack::DeliverTransportPacket` 进入
- * **TransportDemuxer**，再按 **本地端口 + 本地 IP** 找到 `TransportEndpoint`。
+ * **TransportDemuxer**，再按 **本地端口 + 本地 IP** 或 **四元组** 找到端点。
  *
  * @code
  * ipv4::HandlePacket
  *   → Stack::DeliverTransportPacket(proto=17|6, pkt 含 UDP/TCP 头)
  *   → TransportDemuxer::DeliverPacket
- *   → udp::Endpoint::HandlePacket  或  tcp::Endpoint::HandlePacket
+ *   → udp::Endpoint / tcp::Listener / tcp::Connection
  * @endcode
  *
- * M2 单连接场景下 TCP 与 UDP 共用同一 BindKey；多连接 / Listen backlog 在 M2+
- * 扩展。
+ * ## TCP demuxer 双表（M2+）
  *
- * ## TCP 与 RFC 793 状态图的分工
+ * | 表 | 键 | 端点类型 | 典型状态 |
+ * |----|-----|----------|----------|
+ * | `listen_endpoints_` | (local_ip, local_port) | `tcp::Listener` | LISTEN |
+ * | `connected_endpoints_` | 四元组 | `tcp::Connection` | SYN-SENT … CLOSED |
  *
- * @code
- * Demuxer::DeliverPacket     →  按 (local_ip, local_port) 找到 tcp::Endpoint
- * Endpoint::HandlePacket     →  按 TcpState 执行 RFC 793 转移（见 state.hh）
- * @endcode
- *
- * Demuxer **不**解析 SYN/FIN；状态机全部在 `transport/tcp/endpoint.cc`。
+ * 查找顺序：**先四元组，再监听键**（仅 TCP）。
  *
  * @see docs/tcp-rfc793-states.md
- * @see references/tcpip/stack/registration.go TransportEndpointID
- * @see references/tcpip/stack/transport_demuxer.go
- * @see docs/m1.md
- * @see docs/m2.md
+ * @see docs/m2+.md
  */
 
 #pragma once
@@ -44,13 +38,6 @@
 
 namespace netstack::stack {
 
-/**
- * @brief 传输层端点四元组（对标 TransportEndpointID）。
- *
- * 入站 demux 时：
- * - local_* 来自「发给本机」的一侧（UDP 目的端口 + Route.local_address）；
- * - remote_* 来自发送方（UDP 源端口 + Route.remote_address）。
- */
 struct TransportEndpointID {
   uint16_t local_port{};
   Address local_address;
@@ -58,11 +45,6 @@ struct TransportEndpointID {
   Address remote_address;
 };
 
-/**
- * @brief 可接收报文的传输层端点（socket 的极简抽象）。
- *
- * 实现类在 `HandlePacket` 内处理数据；M1 的 UDP echo 在此同步回射。
- */
 class TransportEndpoint {
  public:
   virtual ~TransportEndpoint() = default;
@@ -70,9 +52,6 @@ class TransportEndpoint {
                             PacketBuffer pkt) = 0;
 };
 
-/**
- * @brief 传输层协议（UDP/TCP）在栈内的注册接口。
- */
 class TransportProtocol {
  public:
   virtual ~TransportProtocol() = default;
@@ -80,11 +59,9 @@ class TransportProtocol {
   virtual TransportProtocolNumber Number() const = 0;
   virtual int MinimumPacketSize() const = 0;
 
-  /** @brief 从仍以传输层头开头的 buffer 解析源/目的端口。 */
   virtual bool ParsePorts(std::span<const uint8_t> transport_hdr, uint16_t& src,
                           uint16_t& dst) const = 0;
 
-  /** @brief 无 listener 时调用（M1 可空实现，不发 ICMP）。 */
   virtual void HandleUnknownDestinationPacket(Route* route,
                                               TransportEndpointID id,
                                               PacketBuffer pkt) {
@@ -94,21 +71,29 @@ class TransportProtocol {
   }
 };
 
-/**
- * @brief 传输层分发器（M1 精简版 transportDemuxer）。
- *
- * - `AddProtocol`：注册 UDP 等协议实现（ParsePorts、MinimumPacketSize）；
- * - `RegisterEndpoint`：Bind 时登记 (net, trans, local_port, local_addr)；
- * - `DeliverPacket`：解析端口 → 查找 endpoint → HandlePacket。
- */
 class TransportDemuxer {
  public:
   void AddProtocol(std::unique_ptr<TransportProtocol> protocol);
 
+  /** @brief UDP Bind / TCP Listen 登记（本地 IP + 端口）。 */
   StackResult RegisterEndpoint(NetworkProtocolNumber net_proto,
                                TransportProtocolNumber trans_proto,
                                TransportEndpointID id,
                                TransportEndpoint* endpoint);
+
+  /**
+   * @brief TCP 已建立（或半连接）四元组登记。
+   *
+   * id 须含 local_* 与 remote_*；与 `RegisterEndpoint` 监听键互不冲突。
+   */
+  StackResult RegisterConnectedEndpoint(NetworkProtocolNumber net_proto,
+                                        TransportProtocolNumber trans_proto,
+                                        TransportEndpointID id,
+                                        TransportEndpoint* endpoint);
+
+  void UnregisterConnectedEndpoint(NetworkProtocolNumber net_proto,
+                                   TransportProtocolNumber trans_proto,
+                                   TransportEndpointID id);
 
   bool DeliverPacket(Route* route, TransportProtocolNumber trans_proto,
                      PacketBuffer pkt);
@@ -129,11 +114,37 @@ class TransportDemuxer {
     }
   };
 
+  struct TupleKey {
+    NetworkProtocolNumber net{};
+    TransportProtocolNumber trans{};
+    uint16_t local_port{};
+    Address local_address;
+    uint16_t remote_port{};
+    Address remote_address;
+
+    bool operator==(const TupleKey& o) const {
+      return net == o.net && trans == o.trans && local_port == o.local_port &&
+             local_address == o.local_address && remote_port == o.remote_port &&
+             remote_address == o.remote_address;
+    }
+  };
+
   struct BindKeyHash {
     size_t operator()(const BindKey& k) const;
   };
 
-  std::unordered_map<BindKey, TransportEndpoint*, BindKeyHash> endpoints_{};
+  struct TupleKeyHash {
+    size_t operator()(const TupleKey& k) const;
+  };
+
+  static TupleKey ToTupleKey(NetworkProtocolNumber net,
+                             TransportProtocolNumber trans,
+                             const TransportEndpointID& id);
+
+  std::unordered_map<BindKey, TransportEndpoint*, BindKeyHash>
+      listen_endpoints_{};
+  std::unordered_map<TupleKey, TransportEndpoint*, TupleKeyHash>
+      connected_endpoints_{};
   std::unordered_map<TransportProtocolNumber,
                      std::unique_ptr<TransportProtocol>>
       protocols_{};

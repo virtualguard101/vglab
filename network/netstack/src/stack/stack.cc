@@ -112,6 +112,19 @@ StackResult Stack::RegisterTransportEndpoint(NetworkProtocolNumber net,
   return demuxer_.RegisterEndpoint(net, trans, id, endpoint);
 }
 
+StackResult Stack::RegisterConnectedEndpoint(NetworkProtocolNumber net,
+                                             TransportProtocolNumber trans,
+                                             TransportEndpointID id,
+                                             TransportEndpoint* endpoint) {
+  return demuxer_.RegisterConnectedEndpoint(net, trans, id, endpoint);
+}
+
+void Stack::UnregisterConnectedEndpoint(NetworkProtocolNumber net,
+                                        TransportProtocolNumber trans,
+                                        TransportEndpointID id) {
+  demuxer_.UnregisterConnectedEndpoint(net, trans, id);
+}
+
 /** @brief 网络层剥头后的传输层入口（由 ipv4::HandlePacket 调用）。 */
 void Stack::DeliverTransportPacket(Route* route,
                                    TransportProtocolNumber protocol,

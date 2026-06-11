@@ -39,8 +39,9 @@
  * | kSynReceived | SYN-RECEIVED | ✓ |
  * | kEstablished | ESTABLISHED | ✓ |
  * | kCloseWait | CLOSE-WAIT | ✓ |
+ * | kSynSent | SYN-SENT | ✓ M2+ Connect |
  * | kLastAck | LAST-ACK | ✓ |
- * | （无） | SYN-SENT, FIN-WAIT-*, CLOSING, TIME-WAIT | M2+ |
+ * | （无） | FIN-WAIT-*, CLOSING, TIME-WAIT | 仍推迟 |
  *
  * @see docs/tcp-rfc793-states.md
  * @see RFC 793 Figure 6
@@ -53,7 +54,8 @@ namespace netstack::transport::tcp {
 
 enum class TcpState {
   kClosed,       ///< RFC: CLOSED — 无连接 / 已终止
-  kListen,       ///< RFC: LISTEN — passive OPEN 后等待 SYN
+  kListen,       ///< RFC: LISTEN — 仅 Listener 持有
+  kSynSent,      ///< RFC: SYN-SENT — Connect() 主动打开（M2+）
   kSynReceived,  ///< RFC: SYN-RECEIVED — 已发 SYN-ACK，等第三次 ACK
   kEstablished,  ///< RFC: ESTABLISHED — 数据传送态
   kCloseWait,    ///< RFC: CLOSE-WAIT — 对端 FIN 已收，等本端 CLOSE

@@ -3,7 +3,7 @@
 本文档是教学栈中 **RFC 793 Figure 6**（TCP 连接状态图）的集中对照表。  
 各模块源码通过 `@see docs/tcp-rfc793-states.md` 引用；实现细节见 `transport/tcp/endpoint.cc`。
 
-**[M2]** = 本仓库 M2 已实现；**[—]** = 已推迟（M2+ / 扩展）。
+**[M2]** = M2 基础已实现；**[M2+]** = M2 扩展已实现；**[—]** = 仍推迟。
 
 ---
 
@@ -18,11 +18,11 @@ stateDiagram-v2
   [*] --> CLOSED
 
   CLOSED --> LISTEN: passive OPEN [M2 Listen]
-  CLOSED --> SYN_SENT: active OPEN [—]
+  CLOSED --> SYN_SENT: active OPEN [M2+ Connect]
 
   LISTEN --> SYN_RECEIVED: RCV SYN [M2]
   SYN_SENT --> SYN_RECEIVED: RCV SYN [—]
-  SYN_SENT --> ESTABLISHED: RCV SYN+ACK [—]
+  SYN_SENT --> ESTABLISHED: RCV SYN+ACK [M2+]
 
   SYN_RECEIVED --> ESTABLISHED: RCV ACK [M2]
 
@@ -85,7 +85,7 @@ stateDiagram-v2
 |-------------------|--------------|-----|
 | `kClosed` | CLOSED | ✓ |
 | `kListen` | LISTEN | ✓ |
-| — | SYN-SENT | ✗ 主动打开 |
+| `kSynSent` | SYN-SENT | ✓ M2+ Connect |
 | `kSynReceived` | SYN-RECEIVED | ✓ |
 | `kEstablished` | ESTABLISHED | ✓ |
 | — | FIN-WAIT-1 | ✗ |
@@ -101,9 +101,11 @@ stateDiagram-v2
 
 | 当前状态 | 事件 / 收到段 | 发送段 | 下一状态 | M2 实现位置 |
 |----------|---------------|--------|----------|-------------|
-| CLOSED | `Listen()` | — | LISTEN | `Endpoint::Listen` |
-| LISTEN | `SYN`（无 ACK） | `SYN\|ACK` | SYN-RECEIVED | `HandlePacket` |
-| SYN-RECEIVED | `ACK`（ack=我方 SYN+1） | — | ESTABLISHED | `HandlePacket` |
+| CLOSED | `Listener::Listen()` | — | LISTEN | `listener.cc` |
+| LISTEN | `SYN`（无 ACK） | `SYN\|ACK` | SYN-RECEIVED | `Listener` → `Connection` |
+| CLOSED | `Connect()` | `SYN` | SYN-SENT | `connection.cc` |
+| SYN-SENT | `SYN\|ACK` | `ACK` | ESTABLISHED | `Connection::HandlePacket` |
+| SYN-RECEIVED | `ACK`（ack=我方 SYN+1） | — | ESTABLISHED | `Connection::HandlePacket` |
 | ESTABLISHED | 按序数据 | `ACK` | ESTABLISHED | `HandlePacket` |
 | ESTABLISHED | 按序 `FIN` | `ACK` | CLOSE-WAIT | `HandlePacket` |
 | ESTABLISHED | `Close()` | `FIN\|ACK` | LAST-ACK | `Endpoint::Close` |
@@ -128,9 +130,10 @@ stateDiagram-v2
 
 | 测试 | RFC 路径 |
 |------|----------|
-| `tcp_handshake_test` | CLOSED→LISTEN→SYN-RECEIVED→ESTABLISHED |
-| `tcp_transfer_test`（数据） | ESTABLISHED 上数据段 + ACK |
-| `tcp_transfer_test`（FIN） | ESTABLISHED→CLOSE-WAIT→LAST-ACK→CLOSED |
+| `m2_tcp_handshake` | Listener：LISTEN→SYN-RECEIVED→ESTABLISHED |
+| `m2_tcp_transfer` | 数据 + FIN 关闭 |
+| `m2_tcp_connect` | SYN-SENT + 双向数据 |
+| `m2_tcp_backlog` | backlog 满丢弃 SYN |
 
 ---
 
@@ -138,4 +141,6 @@ stateDiagram-v2
 
 - [RFC 793](https://www.rfc-editor.org/rfc/rfc793) — Transmission Control Protocol（Figure 6）
 - [`docs/m2.md`](m2.md) — M2 里程碑范围
-- [`docs/adr/004-m2-tcp-simplified.md`](adr/004-m2-tcp-simplified.md) — 裁剪决策
+- [`docs/adr/004-m2-tcp-simplified.md`](adr/004-m2-tcp-simplified.md) — M2 裁剪
+- [`docs/adr/005-m2-ext-demuxer-connect.md`](adr/005-m2-ext-demuxer-connect.md) — M2+ demux
+- [`docs/m2+.md`](m2+.md) — M2+ 实施说明

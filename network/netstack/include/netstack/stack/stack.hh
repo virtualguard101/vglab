@@ -75,10 +75,21 @@ class Stack : public TransportDispatcher {
   void ReleasePort(NetworkProtocolNumber net, TransportProtocolNumber trans,
                    uint16_t port);
 
+  /** @brief UDP Bind / TCP Listen（本地 IP + 端口）。 */
   StackResult RegisterTransportEndpoint(NetworkProtocolNumber net,
                                         TransportProtocolNumber trans,
                                         TransportEndpointID id,
                                         TransportEndpoint* endpoint);
+
+  /** @brief TCP 四元组登记（Connection 半连接/已连接）。 */
+  StackResult RegisterConnectedEndpoint(NetworkProtocolNumber net,
+                                        TransportProtocolNumber trans,
+                                        TransportEndpointID id,
+                                        TransportEndpoint* endpoint);
+
+  void UnregisterConnectedEndpoint(NetworkProtocolNumber net,
+                                   TransportProtocolNumber trans,
+                                   TransportEndpointID id);
 
   void DeliverTransportPacket(Route* route, TransportProtocolNumber protocol,
                               PacketBuffer pkt) override;
