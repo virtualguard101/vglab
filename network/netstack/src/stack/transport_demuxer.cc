@@ -5,7 +5,11 @@
  * 对标 references/tcpip/stack/transport_demuxer.go 的 deliverPacket，
  * 但省略：多播/广播、SO_REUSEPORT、per-NIC 多 endpoint、raw socket。
  *
+ * **TCP 状态机不在此**：本文件只负责端口→Endpoint 查找；RFC 793 转移在
+ * `transport/tcp/endpoint.cc`（见 docs/tcp-rfc793-states.md）。
+ *
  * @see include/netstack/stack/transport.hh
+ * @see docs/tcp-rfc793-states.md
  */
 
 #include "netstack/header/ipv4.hh"

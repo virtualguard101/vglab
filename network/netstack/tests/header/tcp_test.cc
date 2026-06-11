@@ -1,6 +1,20 @@
 /**
  * @file tcp_test.cc
  * @brief TCP 头单元测试（M2）。
+ *
+ * ## 学习目标
+ *
+ * - TCP 头固定 20 字节（M2 无选项）；
+ * - `DataOffset` 存于第 12 字节高 4 位（单位 4 字节）；
+ * - Flags 可组合（SYN|ACK）；
+ * - `IsValid` 拒绝声称头长 < 20 的段。
+ *
+ * @code
+ * ctest --test-dir build -R header_tcp
+ * @endcode
+ *
+ * @see include/netstack/header/tcp.hh
+ * @see docs/m2.md
  */
 
 #include "netstack/header/tcp.hh"
@@ -40,6 +54,7 @@ void TestEncodeAndParse() {
   assert(hdr.IsValid(buf.size()));
 }
 
+/** @brief data_offset=16 字节 → 非法（小于最小 20）。 */
 void TestInvalidDataOffset() {
   std::vector<uint8_t> buf(20, 0);
   TCPHeader hdr(buf);

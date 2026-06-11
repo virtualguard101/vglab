@@ -1,5 +1,11 @@
 /**
  * @file tcp.cc
+ * @brief TCP 头编解码实现（M2）。
+ *
+ * 与 UDP/IPv4 相同：**大端（网络序）** 读写多字节字段。
+ * Data Offset 存于第 12 字节**高 4 位**，单位为 32 位字（与 IPv4 IHL 类似）。
+ *
+ * @see include/netstack/header/tcp.hh
  */
 
 #include "netstack/header/tcp.hh"
@@ -48,6 +54,11 @@ uint32_t TCPHeader::AcknowledgmentNumber() const {
   return ReadBE32(data_.data() + kTCPAckNum);
 }
 
+/**
+ * @brief 从第 12 字节高 4 位解析头长（字节）。
+ *
+ * 例如 data[12]=0x50 → 高 4 位为 5 → 5×4 = 20 字节。
+ */
 uint8_t TCPHeader::DataOffset() const {
   return static_cast<uint8_t>((data_[kTCPDataOffset] >> 4) * 4);
 }
@@ -81,6 +92,9 @@ bool TCPHeader::ParsePorts(std::span<const uint8_t> data, uint16_t& src,
   return true;
 }
 
+/**
+ * @brief 防止 DataOffset 声称比实际缓冲区更长（截断/伪造报文）。
+ */
 bool TCPHeader::IsValid(size_t tcp_size) const {
   if (data_.size() < kTCPMinimumSize || tcp_size < kTCPMinimumSize) {
     return false;

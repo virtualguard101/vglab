@@ -2,6 +2,35 @@
  * @file endpoint.cc
  * @brief TCP endpoint 状态机（M2 被动打开 + 按序收发 + FIN 关闭）。
  *
+ * ## Listen 流程
+ *
+ * 1. `PortManager::Reserve` 防止端口冲突；
+ * 2. `Stack::RegisterTransportEndpoint` 写入 demuxer 表（键 = 本地 IP +
+ * 端口）；
+ * 3. `state_ = LISTEN`。
+ *
+ * ## HandlePacket ↔ RFC 793 转移表
+ *
+ * 完整状态图见 **docs/tcp-rfc793-states.md**；下表为 M2 实现的子集。
+ *
+ * | RFC 当前态 | 事件 / 段 | 发送 | RFC 下一态 | `TcpState` |
+ * |------------|-----------|------|------------|------------|
+ * | LISTEN | RCV SYN | SYN\|ACK | SYN-RECEIVED | kSynReceived |
+ * | SYN-RECEIVED | RCV ACK | — | ESTABLISHED | kEstablished |
+ * | ESTABLISHED | RCV 数据 | ACK | ESTABLISHED | kEstablished |
+ * | ESTABLISHED | RCV FIN | ACK | CLOSE-WAIT | kCloseWait |
+ * | CLOSE-WAIT | （应用 Close） | FIN\|ACK | LAST-ACK | kLastAck |
+ * | LAST-ACK | RCV ACK | — | CLOSED | kClosed |
+ *
+ * M2 **不**处理乱序、不重传；seq ≠ rcv_nxt_ 的段直接丢弃。
+ *
+ * ## TCP 校验和（出站）
+ *
+ * 伪首部（12 字节）+ TCP 段，RFC 1071 累加后取反写入 checksum 字段。
+ * 入站不验证（见 ADR 004）。
+ *
+ * @see include/netstack/transport/tcp/endpoint.hh
+ * @see docs/tcp-rfc793-states.md
  * @see docs/m2.md
  */
 
@@ -30,6 +59,14 @@ IPv4Address FromStackAddress(const stack::Address& addr) {
   return out;
 }
 
+/**
+ * @brief 计算 TCP 段校验和（含 IPv4 伪首部）。
+ *
+ * @code
+ * 伪首部：src(4) | dst(4) | 0 | proto(6) | tcp_len(2)
+ * checksum = ~Checksum(伪首部 + TCP段[checksum字段=0])
+ * @endcode
+ */
 uint16_t ComputeTcpChecksum(const IPv4Address& src, const IPv4Address& dst,
                             std::span<const uint8_t> segment) {
   uint8_t pseudo[12]{};
@@ -77,6 +114,7 @@ stack::StackResult Endpoint::Listen(stack::NICID nic_id, IPv4Address local_addr,
   nic_id_ = nic_id;
   local_addr_ = local_addr;
   local_port_ = port;
+  // RFC 793: passive OPEN — CLOSED → LISTEN
   state_ = TcpState::kListen;
   return std::nullopt;
 }
@@ -98,8 +136,8 @@ stack::StackResult Endpoint::Write(std::span<const uint8_t> data) {
                              local_addr_.octets.end());
   route.remote_address = remote_addr_;
 
-  const auto flags = static_cast<uint8_t>(header::TCPFlags::kAck |
-                                          header::TCPFlags::kPsh);
+  const auto flags =
+      static_cast<uint8_t>(header::TCPFlags::kAck | header::TCPFlags::kPsh);
   SendSegment(&route, flags, snd_nxt_, rcv_nxt_, data);
   snd_nxt_ = seqnum::Add(snd_nxt_, static_cast<seqnum::Size>(data.size()));
   return std::nullopt;
@@ -115,10 +153,12 @@ void Endpoint::Close() {
     route.local_address.assign(local_addr_.octets.begin(),
                                local_addr_.octets.end());
     route.remote_address = remote_addr_;
-    SendSegment(&route, static_cast<uint8_t>(header::TCPFlags::kFin |
-                                             header::TCPFlags::kAck),
-                snd_nxt_, rcv_nxt_, {});
+    SendSegment(
+        &route,
+        static_cast<uint8_t>(header::TCPFlags::kFin | header::TCPFlags::kAck),
+        snd_nxt_, rcv_nxt_, {});
     snd_nxt_ = seqnum::Add(snd_nxt_, 1);
+    // RFC 793: ESTABLISHED + CLOSE → FIN-WAIT-1（M2 简化为 LAST-ACK）
     state_ = TcpState::kLastAck;
   } else if (state_ == TcpState::kCloseWait) {
     stack::Route route{};
@@ -126,10 +166,12 @@ void Endpoint::Close() {
     route.local_address.assign(local_addr_.octets.begin(),
                                local_addr_.octets.end());
     route.remote_address = remote_addr_;
-    SendSegment(&route, static_cast<uint8_t>(header::TCPFlags::kFin |
-                                             header::TCPFlags::kAck),
-                snd_nxt_, rcv_nxt_, {});
+    SendSegment(
+        &route,
+        static_cast<uint8_t>(header::TCPFlags::kFin | header::TCPFlags::kAck),
+        snd_nxt_, rcv_nxt_, {});
     snd_nxt_ = seqnum::Add(snd_nxt_, 1);
+    // RFC 793: CLOSE-WAIT + CLOSE → LAST-ACK
     state_ = TcpState::kLastAck;
   }
 }
@@ -164,6 +206,13 @@ void Endpoint::SendSegment(stack::Route* route, uint8_t flags, uint32_t seq,
                               header::kTCPProtocolNumber, std::move(l4));
 }
 
+/**
+ * @brief 入站 TCP 段处理：按 state_ 分支驱动握手/数据/关闭。
+ *
+ * @param route 入站 Route（local=目的 IP，remote=源 IP，由 ipv4::HandlePacket
+ * 填写）。
+ * @param id demuxer 填写的四元组（remote_port = 客户端源端口）。
+ */
 void Endpoint::HandlePacket(stack::Route* route, stack::TransportEndpointID id,
                             stack::PacketBuffer pkt) {
   if (stack_ == nullptr || route == nullptr) {
@@ -187,22 +236,25 @@ void Endpoint::HandlePacket(stack::Route* route, stack::TransportEndpointID id,
 
   switch (state_) {
     case TcpState::kListen: {
+      // RFC 793: LISTEN + RCV SYN → SYN-RECEIVED（发 SYN|ACK）
+      // 只接受「纯 SYN」；带 ACK 的 SYN 在完整栈中走同时打开，M2 丢弃
       if (!header::HasFlag(flags, header::TCPFlags::kSyn) ||
           header::HasFlag(flags, header::TCPFlags::kAck)) {
         return;
       }
       remote_port_ = id.remote_port;
       remote_addr_ = id.remote_address;
-      rcv_nxt_ = seqnum::Add(seq, 1);
-      snd_nxt_ = seqnum::Add(iss_, 1);
-      SendSegment(route,
-                  static_cast<uint8_t>(header::TCPFlags::kSyn |
-                                       header::TCPFlags::kAck),
-                  iss_, rcv_nxt_, {});
+      rcv_nxt_ = seqnum::Add(seq, 1);   // SYN 占一个序号
+      snd_nxt_ = seqnum::Add(iss_, 1);  // 我方 SYN 将占 iss_
+      SendSegment(
+          route,
+          static_cast<uint8_t>(header::TCPFlags::kSyn | header::TCPFlags::kAck),
+          iss_, rcv_nxt_, {});
       state_ = TcpState::kSynReceived;
       break;
     }
     case TcpState::kSynReceived: {
+      // 第三次握手：ACK 必须确认我方 SYN（ack == iss_ + 1 == snd_nxt_）
       if (!header::HasFlag(flags, header::TCPFlags::kAck) || ack != snd_nxt_) {
         return;
       }
@@ -210,35 +262,36 @@ void Endpoint::HandlePacket(stack::Route* route, stack::TransportEndpointID id,
       break;
     }
     case TcpState::kEstablished: {
+      // RFC 793: ESTABLISHED + RCV FIN → CLOSE-WAIT（发 ACK）
       if (header::HasFlag(flags, header::TCPFlags::kFin)) {
         if (seq != rcv_nxt_) {
           return;
         }
         rcv_nxt_ = seqnum::Add(rcv_nxt_, 1);
-        SendSegment(route, static_cast<uint8_t>(header::TCPFlags::kAck), snd_nxt_,
-                    rcv_nxt_, {});
+        SendSegment(route, static_cast<uint8_t>(header::TCPFlags::kAck),
+                    snd_nxt_, rcv_nxt_, {});
         state_ = TcpState::kCloseWait;
         break;
       }
+      // RFC 793: ESTABLISHED + RCV 数据 → ESTABLISHED（发 ACK）
       if (!payload.empty()) {
         if (seq != rcv_nxt_) {
-          return;
+          return;  // M2：乱序丢弃（完整栈应缓存或 SACK）
         }
         rcv_buf_.insert(rcv_buf_.end(), payload.begin(), payload.end());
-        rcv_nxt_ = seqnum::Add(rcv_nxt_,
-                               static_cast<seqnum::Size>(payload.size()));
+        rcv_nxt_ =
+            seqnum::Add(rcv_nxt_, static_cast<seqnum::Size>(payload.size()));
         SendSegment(route, static_cast<uint8_t>(header::TCPFlags::kAck),
                     snd_nxt_, rcv_nxt_, {});
       }
       break;
     }
     case TcpState::kCloseWait: {
-      if (header::HasFlag(flags, header::TCPFlags::kAck)) {
-        break;
-      }
+      // RFC 793: 等待用户 CLOSE()；对端 ACK 可忽略
       break;
     }
     case TcpState::kLastAck: {
+      // RFC 793: LAST-ACK + RCV ACK → CLOSED（M2 跳过 TIME-WAIT）
       if (header::HasFlag(flags, header::TCPFlags::kAck)) {
         state_ = TcpState::kClosed;
       }

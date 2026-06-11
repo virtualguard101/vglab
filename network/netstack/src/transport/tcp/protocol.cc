@@ -1,6 +1,10 @@
 /**
  * @file protocol.cc
  * @brief TCP 作为 TransportProtocol 的元数据实现（M2）。
+ *
+ * 与 UDP `protocol.cc` 对称：把 header 层的常量与 ParsePorts 桥接到 stack。
+ *
+ * @see include/netstack/transport/tcp/protocol.hh
  */
 
 #include "netstack/transport/tcp/protocol.hh"

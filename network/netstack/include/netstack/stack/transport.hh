@@ -1,23 +1,36 @@
 /**
  * @file transport.hh
- * @brief 传输层接口与 demuxer（M1）。
+ * @brief 传输层接口与 demuxer（M1 UDP / M2 TCP）。
  *
  * ## 分层位置
  *
  * IPv4 `HandlePacket` 剥掉 L3 头后，由 `Stack::DeliverTransportPacket` 进入
- * **TransportDemuxer**，再按四元组中的 **本地端口 + 本地 IP** 找到
- * `TransportEndpoint`（如 UDP echo socket）。
+ * **TransportDemuxer**，再按 **本地端口 + 本地 IP** 找到 `TransportEndpoint`。
  *
  * @code
  * ipv4::HandlePacket
- *   → Stack::DeliverTransportPacket(proto=17, pkt 含 UDP 头)
+ *   → Stack::DeliverTransportPacket(proto=17|6, pkt 含 UDP/TCP 头)
  *   → TransportDemuxer::DeliverPacket
- *   → udp::Endpoint::HandlePacket
+ *   → udp::Endpoint::HandlePacket  或  tcp::Endpoint::HandlePacket
  * @endcode
  *
+ * M2 单连接场景下 TCP 与 UDP 共用同一 BindKey；多连接 / Listen backlog 在 M2+
+ * 扩展。
+ *
+ * ## TCP 与 RFC 793 状态图的分工
+ *
+ * @code
+ * Demuxer::DeliverPacket     →  按 (local_ip, local_port) 找到 tcp::Endpoint
+ * Endpoint::HandlePacket     →  按 TcpState 执行 RFC 793 转移（见 state.hh）
+ * @endcode
+ *
+ * Demuxer **不**解析 SYN/FIN；状态机全部在 `transport/tcp/endpoint.cc`。
+ *
+ * @see docs/tcp-rfc793-states.md
  * @see references/tcpip/stack/registration.go TransportEndpointID
  * @see references/tcpip/stack/transport_demuxer.go
  * @see docs/m1.md
+ * @see docs/m2.md
  */
 
 #pragma once

@@ -26,7 +26,8 @@ class PortManager {
  public:
   /**
    * @brief 尝试占用端口；已占用则返回 false。
-   * @param net 网络层协议值，如 IPv4 的 0x0800（此处 Bind 路径用 kIPv4ProtocolNumber）。
+   * @param net 网络层协议值，如 IPv4 的 0x0800（此处 Bind 路径用
+   * kIPv4ProtocolNumber）。
    * @param trans 传输协议号，如 UDP 的 17。
    * @param port 端口号。
    * @return 是否成功占用。

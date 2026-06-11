@@ -22,3 +22,8 @@ M2 目标是在 channel link 上跑通单连接的三次握手、按序单段数
 
 - 实现与测试更简单，可专注状态机与 seqnum 教学。
 - 不可直接用于有损网络或生产语义；RTO、SACK、多连接在 M2+ 扩展。
+
+## 状态图对照
+
+RFC 793 Figure 6 与 M2 已实现转移的完整对照见
+[`docs/tcp-rfc793-states.md`](../tcp-rfc793-states.md)。
