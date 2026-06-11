@@ -15,7 +15,7 @@
 - [x] **transport/udp**：`Protocol`、`Endpoint`（Bind + echo）
 - [x] **transport/tcp**：`Protocol`、`Listener`、`Connection`（Listen/Connect + 握手 + 数据 + FIN）
 - [x] **测试**：…、`m2_tcp_connect`、`m2_tcp_backlog`（共 11 项 ctest）
-- [x] **文档**：M0/M1/M2/M2+ 指南、ADR 001–005
+- [x] **文档**：M0/M1/M2/M2+/M3 指南、ADR 001–006
 
 ## M0 可选后续
 
@@ -31,4 +31,14 @@
 
 - [ ] RTO、重传、拥塞控制
 - [ ] FIN-WAIT / TIME-WAIT 完整路径
-- [ ] TUN 对接宿主
+
+## M3：TUN 对接宿主
+
+实施指南：[`docs/m3.md`](docs/m3.md)（ADR [`006`](docs/adr/006-m3-tun-linux.md)）
+
+- [ ] `link/tun`：`OpenTun`（`IFF_TUN | IFF_NO_PI`、非阻塞）
+- [ ] `link/fdbased`：`FdEndpoint`（`PollOnce` + `WritePacket`）
+- [ ] `examples/tun_tcp_echo`（`NETSTACK_ENABLE_TUN=ON`）
+- [ ] 宿主机 `ip tuntap` + `nc` 手动验收
+- [ ] （可选）`tests/link/fdbased_test.cc`（pipe 模拟 FD）
+- [ ] channel ctest 11 项仍全绿（`NETSTACK_ENABLE_TUN=OFF` 默认）
