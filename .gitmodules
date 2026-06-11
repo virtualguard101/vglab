@@ -22,3 +22,6 @@
 [submodule "network/netstack/references"]
 	path = network/netstack/references
 	url = git@github.com:google/netstack.git
+[submodule "system/cs110"]
+	path = system/cs110
+	url = git@github.com:virtualguard101/cs110.git
