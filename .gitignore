@@ -15,6 +15,3 @@ Cargo.lock
 
 # ide
 .idea/
-
-# temp files or folders
-drafts/

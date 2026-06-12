@@ -34,12 +34,11 @@ This repo follows the following guidelines:
 | `infrastructure/` | Infrastructure / Cloud Native |
 | `lang/` | PL(Programming Language), Syntax, Small Demos (can be thrown away, can be bad) |
 | `misc/idea/` | Ideas MVPs / PoCs |
-| `misc/legacy/` | Archived, Some Miscellaneous Code |
+| `misc/scratch/` | Scratchpad |
 | `network/` | Computer Network, Protocol PoCs, etc. |
 | `os/` | Operating System |
 | `scripts/` | Cross-project Scripts |
-
-`drafts/` and `trash/` are only local drafts, and are ignored in `.gitignore`.
+| `system/` | Computer System |
 
 ---
 
