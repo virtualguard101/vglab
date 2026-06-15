@@ -1,0 +1,12 @@
+bootstrap:
+    cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+    ln -sf build/compile_commands.json compile_commands.json
+
+build: bootstrap
+    cmake --build build -j
+
+run: build
+    ./build/get_arch
+
+clean:
+    rm -rf build compile_commands.json
