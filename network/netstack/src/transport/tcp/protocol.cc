@@ -2,9 +2,15 @@
  * @file protocol.cc
  * @brief TCP 作为 TransportProtocol 的元数据实现（M2）。
  *
- * 与 UDP `protocol.cc` 对称：把 header 层的常量与 ParsePorts 桥接到 stack。
+ * TransportDemuxer 入站分发前调用：
+ * - `Number()` → 6
+ * - `MinimumPacketSize()` → 20（无选项 TCP 头）
+ * - `ParsePorts()` → 源/目的端口，与 Route 中 IP 组成四元组
+ *
+ * 连接状态机不在此类，而在 `tcp::Connection` / `tcp::Listener`。
  *
  * @see include/netstack/transport/tcp/protocol.hh
+ * @see docs/m2.md
  */
 
 #include "netstack/transport/tcp/protocol.hh"

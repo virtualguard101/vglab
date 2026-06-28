@@ -2,10 +2,21 @@
  * @file checksum.cc
  * @brief RFC 1071 Internet 校验和实现（header 模块，无状态）。
  *
+ * ## 算法要点
+ *
  * - **Internet checksum** 使用 16 位 one's complement 算术：累加时产生的进位要
  *   「折回」到低 16 位，而不是丢弃。
- * - IPv4 头发送方：校验和字段先写 0，对整头求 `Checksum()`，再写入 `~sum`。
- * - IPv4 头接收方：对**含校验和字段的整头**再算一遍，折叠结果应为 `0xFFFF`。
+ * - 按**大端** 16 位字读取；奇数尾字节放在 16 位字的高 8 位。
+ *
+ * ## 在 IPv4 中的用法
+ *
+ * - **发送方**：校验和字段先写 0，对整头求 `Checksum()`，再写入 `~sum`。
+ * - **接收方**：对**含校验和字段的整头**再算一遍，折叠结果应为 `0xFFFF`
+ *   （即 `IsChecksumValid()`）。
+ *
+ * ## ChecksumCombine
+ *
+ * 用于增量更新（如 `EncodePartial`）：把已有部分和与新区间合并时仍需折回进位。
  *
  * @see RFC 1071
  * @see include/netstack/header/checksum.hh

@@ -21,6 +21,10 @@ namespace netstack {
  * @brief 解析点分十进制 IPv4，如 "192.168.1.1"。
  *
  * 使用 C++17 std::from_chars 避免异常；每段须完整消耗且 ≤255。
+ *
+ * **注意**：解析第四段后须将 `start` 设为 `str.size()`；若误用
+ * `dot+1`（dot=npos） 会导致下溢，使所有合法地址解析失败（M3 tun_tcp_echo
+ * 曾触发）。
  */
 std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
   IPv4Address addr{};

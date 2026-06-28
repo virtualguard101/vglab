@@ -8,10 +8,21 @@
  * - **TransportDispatcher**：网络层与传输层之间的窄接口（参考实现中由 NIC/Stack
  *   实现更完整的 demux）。
  *
- * M0 用 RecordingTransportDispatcher 验证「IPv4 剥头后是否调用了交付」；
- * M1 将替换为真实 UDP demuxer（见 docs/m1.md）。
+ * 典型入站路径：
+ * @code
+ * LinkEndpoint → NIC → NetworkProtocol::HandlePacket
+ *   → TransportDispatcher::DeliverTransportPacket → TransportDemuxer
+ * @endcode
  *
+ * ## M0 测试桩 vs M1 生产路径
+ *
+ * M0 用 `RecordingTransportDispatcher` 验证「IPv4 剥头后是否调用了交付」；
+ * M1 起 `Stack` 注入真实 demuxer，按四元组分发到 UDP/TCP Endpoint。
+ *
+ * @see src/stack/network_protocol.cc
  * @see references/tcpip/stack/registration.go NetworkProtocol
+ * @see docs/m0.md
+ * @see docs/m1.md
  */
 
 #pragma once
@@ -56,6 +67,8 @@ class NetworkProtocol {
 
   /**
    * @brief 处理入站网络层包。
+   *
+   * @param route 可为 nullptr；非空时实现应填写 local/remote 地址（入站语义）。
    * @param pkt 入参 Data 以网络层头开始；实现通常剥头并
    * DeliverTransportPacket。
    */

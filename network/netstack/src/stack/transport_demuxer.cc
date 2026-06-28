@@ -63,6 +63,7 @@ StackResult TransportDemuxer::RegisterEndpoint(
   if (endpoint == nullptr) {
     return StackError{ErrorCode::kInvalidEndpointState};
   }
+  // 监听键：(net, trans, local_port, local_address) — UDP Bind / TCP Listen
   BindKey key{net_proto, trans_proto, id.local_port, id.local_address};
   if (listen_endpoints_.count(key) != 0) {
     return StackError{ErrorCode::kInvalidEndpointState};
@@ -77,6 +78,7 @@ StackResult TransportDemuxer::RegisterConnectedEndpoint(
   if (endpoint == nullptr) {
     return StackError{ErrorCode::kInvalidEndpointState};
   }
+  // 四元组键：含 remote_port / remote_address — TCP Connection 专用
   const TupleKey key = ToTupleKey(net_proto, trans_proto, id);
   if (connected_endpoints_.count(key) != 0) {
     return StackError{ErrorCode::kInvalidEndpointState};
@@ -125,6 +127,7 @@ bool TransportDemuxer::DeliverPacket(Route* route,
     return false;
   }
 
+  // 从 L4 头解析源/目的端口，与 Route 中 IP 组成四元组
   uint16_t src_port = 0;
   uint16_t dst_port = 0;
   if (!proto->ParsePorts(std::span<const uint8_t>(data.data(), data.size()),
@@ -138,6 +141,7 @@ bool TransportDemuxer::DeliverPacket(Route* route,
   id.remote_port = src_port;
   id.remote_address = route->remote_address;
 
+  // TCP：先查四元组（已连接 / 半连接），再回落到监听键
   if (trans_proto == header::kTCPProtocolNumber) {
     const TupleKey tkey = ToTupleKey(route->net_proto, trans_proto, id);
     if (auto conn_it = connected_endpoints_.find(tkey);

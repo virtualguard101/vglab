@@ -2,6 +2,19 @@
  * @file fdbased_test.cc
  * @brief FdEndpoint 读写交付（socketpair 模拟，不依赖 TUN/root）。
  *
+ * ## 为何用 socketpair
+ *
+ * 真实 TUN 需要 CAP_NET_ADMIN / root；CI 中用 `socketpair(AF_UNIX)` 模拟
+ * 可读写的 fd，验证 `FdEndpoint::PollOnce` 与 `WritePacket` 与栈的衔接。
+ *
+ * ## 覆盖场景
+ *
+ * 1. **入站**：对端 write 裸 IPv4 帧 → PollOnce → Stack 统计 rx_packets++；
+ * 2. **出站**：WritePacket 写 payload → 对端 read 收到相同字节。
+ *
+ * 帧由 `MakeIPv4Packet` 构造最小合法 IPv4 头（含校验和）。
+ *
+ * @see src/link/fdbased.cc
  * @see docs/m3.md
  */
 
@@ -29,6 +42,7 @@ using netstack::stack::Stack;
 
 namespace {
 
+/** @brief 构造 total_length 字节的合法 IPv4 包（无 L4 载荷时仅 20 字节头）。*/
 std::vector<uint8_t> MakeIPv4Packet(uint16_t total_length, uint8_t protocol) {
   std::vector<uint8_t> buf(total_length, 0);
   IPv4Header hdr(buf);
@@ -45,6 +59,7 @@ std::vector<uint8_t> MakeIPv4Packet(uint16_t total_length, uint8_t protocol) {
   return buf;
 }
 
+/** @brief 入站：write 到 socketpair 对端，PollOnce 应触发 NIC 收包统计。*/
 void TestFdEndpointReadDeliver() {
   int sv[2] = {-1, -1};
   assert(::socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == 0);
@@ -66,6 +81,7 @@ void TestFdEndpointReadDeliver() {
   ::close(sv[1]);
 }
 
+/** @brief 出站：WritePacket 经 fd write，对端 read 应收到相同 payload。*/
 void TestFdEndpointWriteOutbound() {
   int sv[2] = {-1, -1};
   assert(::socketpair(AF_UNIX, SOCK_STREAM, 0, sv) == 0);

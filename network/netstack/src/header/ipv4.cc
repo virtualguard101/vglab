@@ -4,12 +4,25 @@
  *
  * 多字节字段均按 **网络字节序（大端）** 读写，与 RFC 791 及 Wireshark 一致。
  *
+ * ## 固定头布局（20 字节，无选项）
+ *
+ * Vers+IHL | TOS | Total Length | ID | Flags+FragOff | TTL | Protocol |
+ * Checksum | Src(4) | Dst(4)
+ *
+ * IHL 低 4 位 × 4 = 头长度；本教学栈 M0/M1 仅使用 20 字节固定头。
+ *
  * ## 读路径 vs 写路径
  *
  * - **读**：`SourceAddress()` 等从 `data_` span 解析，不分配堆内存。
  * - **写**：`Encode()` / `SetTotalLength()` 等修改底层 vector（由调用方持有）。
  *
+ * ## 校验和职责划分
+ *
+ * - `CalculateChecksum()`：发送路径，字段应为 0，返回未取反的和；
+ * - `IsChecksumValid()`：接收路径，对含 checksum 的整头验证。
+ *
  * @see include/netstack/header/ipv4.hh
+ * @see docs/m0.md
  */
 
 #include "netstack/header/ipv4.hh"
@@ -33,6 +46,7 @@ void WriteBE16(uint8_t* p, uint16_t v) {
 
 }  // namespace
 
+/** @brief 从 Vers+IHL 字节高 4 位读取 IP 版本号（应为 4）。*/
 int IPv4Header::IPVersion(std::span<const uint8_t> data) {
   if (data.size() < kVersIHL + 1) {
     return -1;
@@ -76,10 +90,12 @@ IPv4Address IPv4Header::DestinationAddress() const {
   return IPv4Address::FromWire(data_.data() + kDstAddr);
 }
 
+/** @brief TotalLength − HeaderLength，即 L4 载荷字节数。*/
 uint16_t IPv4Header::PayloadLength() const {
   return TotalLength() - HeaderLength();
 }
 
+/** @brief 返回头之后的可写 span（调用方须保证 buffer 足够长）。*/
 std::span<uint8_t> IPv4Header::Payload() {
   const auto hlen = HeaderLength();
   if (data_.size() <= hlen) {
@@ -151,6 +167,7 @@ bool IPv4Header::IsValid(size_t packet_size) const {
   return true;
 }
 
+/** @brief 按 IPv4Fields 顺序写入固定头各字段（checksum 由调用方单独处理）。*/
 void IPv4Header::Encode(const IPv4Fields& fields) {
   data_[kVersIHL] =
       static_cast<uint8_t>((kIPv4Version << 4) | ((fields.ihl / 4) & 0x0f));

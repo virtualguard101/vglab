@@ -2,13 +2,23 @@
  * @file network_protocol.cc
  * @brief 网络层相关辅助实现（M0：测试用 TransportDispatcher）。
  *
+ * ## 分层接口
+ *
  * - 生产路径中，IPv4 剥头后会调用
- * `TransportDispatcher::DeliverTransportPacket`。
- * - M0 尚未实现真实 UDP/TCP，故提供 `RecordingTransportDispatcher`：
- *   仅记录「交付了哪一层协议号、载荷多大」，供集成测试断言。
- * - M1 将用 `Stack` 或 `TransportDemuxer` 替换该 stub（见 docs/m1.md）。
+ *   `TransportDispatcher::DeliverTransportPacket`。
+ * - `NetworkProtocol` 通过 `SetTransportDispatcher` 持有非拥有指针。
+ *
+ * ## RecordingTransportDispatcher
+ *
+ * M0/M1 集成测试在尚未接线真实 UDP demuxer 时，用本桩验证：
+ * - IPv4 `HandlePacket` 是否调用了交付；
+ * - 上层协议号（如 17）与载荷长度是否符合预期。
+ *
+ * 不保存 payload 内容，仅记 `(protocol, size)`，降低断言成本。
+ * M1 起由 `Stack` / `TransportDemuxer` 替换（见 docs/m1.md）。
  *
  * @see include/netstack/stack/network_protocol.hh
+ * @see docs/m0.md
  */
 
 #include "netstack/stack/network_protocol.hh"

@@ -2,6 +2,11 @@
  * @file send.cc
  * @brief IPv4 出站路径。
  *
+ * ## 在栈中的位置
+ *
+ * 传输层（UDP/TCP）组装好 L4 字节后调用 `SendPacket`；本函数加 IPv4 头并
+ * 经 NIC 的 `LinkEndpoint::WritePacket` 发出。
+ *
  * ## 封装步骤
  *
  * 1. total_length = 20 + len(l4_bytes)；
@@ -9,9 +14,20 @@
  * 3. 拷贝 l4 到偏移 20；
  * 4. `LinkEndpoint::WritePacket(..., kIPv4ProtocolNumber, pkt)`。
  *
- * loopback 会环回入站；**channel** 则只入 outbound 队列（M1 测试用）。
+ * ## Route 字段约定（出站）
+ *
+ * - `local_address` → IPv4 **源**地址；
+ * - `remote_address` → IPv4 **目的**地址；
+ * - `ip_protocol` 参数为 IP 头 Protocol 字段（17=UDP，6=TCP）。
+ *
+ * ## 链路差异
+ *
+ * - **loopback**：WritePacket 立即环回入站；
+ * - **channel**：只入 outbound_ 队列（M1 测试断言）；
+ * - **fdbased**：write 到 TUN fd，宿主可见（M3）。
  *
  * @see include/netstack/net/ipv4/send.hh
+ * @see docs/m3.md
  */
 
 #include "netstack/net/ipv4/send.hh"
@@ -25,6 +41,7 @@ namespace netstack::net::ipv4 {
 
 namespace {
 
+/** @brief 将 stack::Address（4 字节向量）转为 header 模块的 IPv4Address。*/
 IPv4Address FromStackAddress(const stack::Address& addr) {
   IPv4Address out{};
   if (addr.size() >= 4) {
@@ -37,6 +54,12 @@ IPv4Address FromStackAddress(const stack::Address& addr) {
 
 }  // namespace
 
+/**
+ * @brief 在 L4 载荷前封装 IPv4 头并写出到指定 NIC。
+ *
+ * 校验和：先将 checksum 字段置 0，对整头 `CalculateChecksum()`，再写入 `~sum`。
+ * 失败时返回 kBadAddress（NIC 不存在）或链路层 WritePacket 错误。
+ */
 stack::StackResult SendPacket(stack::Stack& stack, stack::NICID nic_id,
                               stack::Route& route, uint8_t ip_protocol,
                               std::vector<uint8_t> l4_bytes) {

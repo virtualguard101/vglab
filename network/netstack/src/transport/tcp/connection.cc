@@ -2,8 +2,33 @@
  * @file connection.cc
  * @brief 单条 TCP 连接状态机（M2+：SYN-SENT、四元组 demux、被动/主动打开）。
  *
+ * ## 状态与 RFC 793
+ *
+ * 完整 Figure 6 对照见 docs/tcp-rfc793-states.md。本实现裁剪子集：
+ *
+ * | 状态 | 典型事件 | 动作 |
+ * |------|----------|------|
+ * | CLOSED | Connect() | 发 SYN → SYN-SENT |
+ * | SYN-SENT | 收 SYN\|ACK | 发 ACK → ESTABLISHED |
+ * | SYN-RECEIVED | 收 ACK | → ESTABLISHED，NotifyEstablished |
+ * | ESTABLISHED | 收数据 | 入 rcv_buf_，发 ACK |
+ * | ESTABLISHED | 收 FIN | → CLOSE-WAIT |
+ * | CLOSE-WAIT / LastAck | Close() 发 FIN | 简化关闭 |
+ *
+ * ## 序列号变量
+ *
+ * - `iss_`：本端初始序列号（全局递增，教学用）
+ * - `snd_nxt_`：下一待发序号
+ * - `rcv_nxt_`：期望下一收包序号（简化：无乱序缓存）
+ *
+ * ## demuxer
+ *
+ * 半连接/已连接后登记 **四元组** 到 `connected_endpoints_`；
+ * Listener 仅登记 `(local_ip, local_port)` 监听键。
+ *
  * @see include/netstack/transport/tcp/connection.hh
  * @see docs/tcp-rfc793-states.md
+ * @see docs/m2+.md
  */
 
 #include "netstack/transport/tcp/connection.hh"
@@ -23,8 +48,10 @@ namespace netstack::transport::tcp {
 
 namespace {
 
+/** @brief 教学用 ISN 生成器；每条新连接 +1000，避免测试撞号。 */
 std::atomic<uint32_t> g_next_iss{100000};
 
+/** @brief stack::Address（vector）→ IPv4Address（固定 4 字节）。 */
 IPv4Address FromStackAddress(const stack::Address& addr) {
   IPv4Address out{};
   if (addr.size() >= 4) {
@@ -35,6 +62,12 @@ IPv4Address FromStackAddress(const stack::Address& addr) {
   return out;
 }
 
+/**
+ * @brief TCP 伪首部 + 段校验和（RFC 793 / 1071）。
+ *
+ * 伪首部：src IP、dst IP、零、protocol=6、TCP 长度；再与 TCP 段做 ones'
+ * complement 和。
+ */
 uint16_t ComputeTcpChecksum(const IPv4Address& src, const IPv4Address& dst,
                             std::span<const uint8_t> segment) {
   uint8_t pseudo[12]{};
@@ -52,6 +85,7 @@ uint16_t ComputeTcpChecksum(const IPv4Address& src, const IPv4Address& dst,
 
 }  // namespace
 
+/** @brief 构造 demuxer 查找用的四元组 ID（local/remote 地址+端口）。 */
 stack::TransportEndpointID Connection::EndpointId() const {
   stack::TransportEndpointID id{};
   id.local_port = local_port_;
@@ -65,6 +99,13 @@ Connection::Connection(stack::Stack* stack) : stack_(stack) {
   iss_ = g_next_iss.fetch_add(1000);
 }
 
+/**
+ * @brief 主动打开（RFC 793 active OPEN）：CLOSED → SYN-SENT。
+ *
+ * 1. Reserve 本地端口
+ * 2. 发 SYN（seq=iss_）
+ * 3. RegisterConnectedEndpoint 登记四元组，以便 SYN-ACK 路由回本对象
+ */
 stack::StackResult Connection::Connect(stack::NICID nic_id,
                                        IPv4Address local_addr,
                                        uint16_t local_port,
@@ -107,6 +148,13 @@ stack::StackResult Connection::Connect(stack::NICID nic_id,
   return std::nullopt;
 }
 
+/**
+ * @brief Listener 收到 SYN 后创建半连接（RFC passive OPEN 片段）。
+ *
+ * - 端口由 Listener Reserve，本对象 `owns_port_=false`
+ * - 发 SYN|ACK，进入 SYN-RECEIVED
+ * - 登记四元组，后续 ACK/数据走 Connection::HandlePacket
+ */
 void Connection::BeginPassiveOpen(stack::NICID nic_id, IPv4Address local_addr,
                                   uint16_t local_port, stack::Route* route,
                                   stack::TransportEndpointID id,
@@ -128,12 +176,18 @@ void Connection::BeginPassiveOpen(stack::NICID nic_id, IPv4Address local_addr,
   state_ = TcpState::kSynReceived;
 }
 
+/** @brief 取出并清空应用层接收缓冲（同步 API，无阻塞）。 */
 std::vector<uint8_t> Connection::Read() {
   std::vector<uint8_t> out;
   out.swap(rcv_buf_);
   return out;
 }
 
+/**
+ * @brief 在 ESTABLISHED 下发数据段（PSH|ACK）。
+ *
+ * 固定窗口 65535；无 Nagle、无重传；snd_nxt_ 随载荷推进。
+ */
 stack::StackResult Connection::Write(std::span<const uint8_t> data) {
   if (stack_ == nullptr || state_ != TcpState::kEstablished) {
     return stack::StackError{stack::ErrorCode::kInvalidEndpointState};
@@ -152,6 +206,7 @@ stack::StackResult Connection::Write(std::span<const uint8_t> data) {
   return std::nullopt;
 }
 
+/** @brief 发 FIN|ACK 进入 LastAck；完整 FIN-WAIT/TIME-WAIT 未实现。 */
 void Connection::Close() {
   if (stack_ == nullptr) {
     return;
@@ -171,6 +226,12 @@ void Connection::Close() {
   }
 }
 
+/**
+ * @brief 编码 TCP 段并经 IPv4 封装发出。
+ *
+ * 出站路径：SendSegment → net::ipv4::SendPacket → LinkEndpoint::WritePacket
+ * （channel 测试进队列；TUN 写 fd）。
+ */
 void Connection::SendSegment(stack::Route* route, uint8_t flags, uint32_t seq,
                              uint32_t ack, std::span<const uint8_t> payload) {
   if (stack_ == nullptr || route == nullptr) {
@@ -201,6 +262,7 @@ void Connection::SendSegment(stack::Route* route, uint8_t flags, uint32_t seq,
                               header::kTCPProtocolNumber, std::move(l4));
 }
 
+/** @brief 向 demuxer 登记四元组；已登记则跳过。 */
 stack::StackResult Connection::RegisterConnected() {
   if (stack_ == nullptr || demux_registered_) {
     return std::nullopt;
@@ -214,6 +276,7 @@ stack::StackResult Connection::RegisterConnected() {
   return err;
 }
 
+/** @brief 连接关闭时从 connected_endpoints_ 移除。 */
 void Connection::UnregisterConnected() {
   if (stack_ == nullptr || !demux_registered_) {
     return;
@@ -223,12 +286,18 @@ void Connection::UnregisterConnected() {
   demux_registered_ = false;
 }
 
+/** @brief 被动打开握手完成：把本连接放入 Listener 的 accept 队列。 */
 void Connection::NotifyEstablished() {
   if (listener_ != nullptr) {
     listener_->EnqueueEstablished(this);
   }
 }
 
+/**
+ * @brief 入站 TCP 段处理：按当前状态执行 RFC 793 转移（教学子集）。
+ *
+ * 入参 pkt.Data() = [TCP 头 | 载荷]（IPv4 已由 ipv4::HandlePacket 剥离）。
+ */
 void Connection::HandlePacket(stack::Route* route,
                               stack::TransportEndpointID id,
                               stack::PacketBuffer pkt) {

@@ -2,8 +2,23 @@
  * @file listener.cc
  * @brief TCP Listener：常驻 LISTEN，SYN 时创建 Connection（M2+ backlog）。
  *
+ * ## 与 Connection 的分工
+ *
+ * @code
+ * 入站 SYN（无 ACK）→ Listener::HandlePacket
+ *   → new Connection → BeginPassiveOpen（SYN-RECEIVED）
+ * 入站 ACK / 数据     → Connection::HandlePacket（四元组 demux）
+ * 握手完成           → accept_queue_ → Accept() 交给应用
+ * @endcode
+ *
+ * ## backlog 语义（教学简化）
+ *
+ * `connections_.size() >= backlog_` 时**静默丢弃**新 SYN（不发 RST）。
+ * 计数含半连接 + 已 ESTABLISHED 未 Accept 的连接。
+ *
  * @see include/netstack/transport/tcp/listener.hh
  * @see docs/m2+.md
+ * @see docs/tcp-rfc793-states.md
  */
 
 #include "netstack/transport/tcp/listener.hh"
@@ -16,6 +31,12 @@ namespace netstack::transport::tcp {
 
 Listener::Listener(stack::Stack* stack) : stack_(stack) {}
 
+/**
+ * @brief passive OPEN：登记监听键 (local_ip, local_port)，进入 LISTEN。
+ *
+ * 1. PortManager::Reserve 防止端口冲突
+ * 2. RegisterTransportEndpoint → demuxer listen_endpoints_
+ */
 stack::StackResult Listener::Listen(stack::NICID nic_id, IPv4Address local_addr,
                                     uint16_t port, size_t backlog) {
   if (stack_ == nullptr || listening_) {
@@ -46,6 +67,7 @@ stack::StackResult Listener::Listen(stack::NICID nic_id, IPv4Address local_addr,
   return std::nullopt;
 }
 
+/** @brief 取一条已 ESTABLISHED 且尚未被应用取走的连接；FIFO。 */
 Connection* Listener::Accept() {
   if (accept_queue_.empty()) {
     return nullptr;
@@ -55,10 +77,17 @@ Connection* Listener::Accept() {
   return conn;
 }
 
+/** @brief Connection 在 SYN-RECEIVED + ACK 完成后调用。 */
 void Listener::EnqueueEstablished(Connection* conn) {
   accept_queue_.push_back(conn);
 }
 
+/**
+ * @brief 仅处理**纯 SYN**（RFC 793：LISTEN 状态忽略带 ACK 的段）。
+ *
+ * 通过 backlog 检查后 fork 新 Connection 并 BeginPassiveOpen。
+ * 本对象**始终保持 LISTEN**，不转为 ESTABLISHED。
+ */
 void Listener::HandlePacket(stack::Route* route, stack::TransportEndpointID id,
                             stack::PacketBuffer pkt) {
   if (!listening_ || stack_ == nullptr || route == nullptr) {
