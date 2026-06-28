@@ -15,3 +15,5 @@ Cargo.lock
 
 # ide
 .idea/
+
+build-*/

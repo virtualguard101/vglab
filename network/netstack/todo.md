@@ -36,9 +36,9 @@
 
 实施指南：[`docs/m3.md`](docs/m3.md)（ADR [`006`](docs/adr/006-m3-tun-linux.md)）
 
-- [ ] `link/tun`：`OpenTun`（`IFF_TUN | IFF_NO_PI`、非阻塞）
-- [ ] `link/fdbased`：`FdEndpoint`（`PollOnce` + `WritePacket`）
-- [ ] `examples/tun_tcp_echo`（`NETSTACK_ENABLE_TUN=ON`）
+- [x] `link/tun`：`OpenTun`（`IFF_TUN | IFF_NO_PI`、非阻塞）
+- [x] `link/fdbased`：`FdEndpoint`（`PollOnce` + `WritePacket`）
+- [x] `examples/tun_tcp_echo`（`NETSTACK_ENABLE_TUN=ON`）
 - [ ] 宿主机 `ip tuntap` + `nc` 手动验收
-- [ ] （可选）`tests/link/fdbased_test.cc`（pipe 模拟 FD）
-- [ ] channel ctest 11 项仍全绿（`NETSTACK_ENABLE_TUN=OFF` 默认）
+- [x] `tests/link/fdbased_test.cc`（`NETSTACK_TUN_INTEGRATION_TEST=ON`）
+- [x] channel ctest 11 项仍全绿（`NETSTACK_ENABLE_TUN=OFF` 默认）

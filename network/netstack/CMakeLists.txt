@@ -60,6 +60,20 @@ add_library(netstack_link
 target_link_libraries(netstack_link PUBLIC netstack_stack)
 target_include_directories(netstack_link PUBLIC include)
 
+option(NETSTACK_ENABLE_TUN "Build TUN/fdbased link and examples" OFF)
+option(NETSTACK_TUN_INTEGRATION_TEST
+       "Add ctest for fdbased socketpair unit test (requires NETSTACK_ENABLE_TUN)" OFF)
+
+if(NETSTACK_ENABLE_TUN)
+  if(NOT CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(FATAL_ERROR "NETSTACK_ENABLE_TUN requires Linux")
+  endif()
+  target_sources(netstack_link PRIVATE
+    src/link/tun.cc
+    src/link/fdbased.cc
+  )
+endif()
+
 add_executable(netstack_header_test tests/header/ipv4_test.cc)
 target_link_libraries(netstack_header_test PRIVATE netstack_header)
 
@@ -109,3 +123,14 @@ add_test(NAME m2_tcp_handshake COMMAND netstack_m2_tcp_handshake_test)
 add_test(NAME m2_tcp_transfer COMMAND netstack_m2_tcp_transfer_test)
 add_test(NAME m2_tcp_connect COMMAND netstack_m2_tcp_connect_test)
 add_test(NAME m2_tcp_backlog COMMAND netstack_m2_tcp_backlog_test)
+
+if(NETSTACK_ENABLE_TUN)
+  add_executable(tun_tcp_echo examples/tun_tcp_echo.cc)
+  target_link_libraries(tun_tcp_echo PRIVATE netstack_link netstack_transport_tcp)
+
+  if(NETSTACK_TUN_INTEGRATION_TEST)
+    add_executable(netstack_fdbased_test tests/link/fdbased_test.cc)
+    target_link_libraries(netstack_fdbased_test PRIVATE netstack_link)
+    add_test(NAME link_fdbased COMMAND netstack_fdbased_test)
+  endif()
+endif()

@@ -40,7 +40,11 @@ std::optional<IPv4Address> IPv4Address::Parse(std::string_view str) {
       return std::nullopt;
     }
     addr.octets[static_cast<size_t>(i)] = static_cast<uint8_t>(octet);
-    start = dot + 1;
+    if (i < 3) {
+      start = dot + 1;
+    } else {
+      start = str.size();
+    }
   }
   if (start != str.size()) {
     return std::nullopt;

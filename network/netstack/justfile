@@ -8,5 +8,13 @@ bootstrap:
 build: bootstrap
     cmake --build build
 
+tun: bootstrap
+    cmake -B build -DNETSTACK_ENABLE_TUN=ON
+    cmake --build build
+
 test: build
     ctest --test-dir build
+
+clean:
+    rm -rf build build*
+    rm -rf compile_commands.json
