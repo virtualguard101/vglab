@@ -25,3 +25,6 @@
 [submodule "system/cs110"]
 	path = system/cs110
 	url = git@github.com:virtualguard101/cs110.git
+[submodule "docs/wiki"]
+	path = docs/wiki
+	url = git@github.com:virtualguard101/wiki.git
