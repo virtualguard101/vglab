@@ -4,15 +4,9 @@
 [submodule "ai/dl/ForyoClassifierCNN"]
 	path = ai/dl/ForyoClassifierCNN
 	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
-[submodule "cca/nand2tetris"]
-	path = cca/nand2tetris
-	url = git@github.com:virtualguard101/Nand2Tetris.git
 [submodule "lang/cpp/cs106l"]
 	path = lang/cpp/cs106l
 	url = git@github.com:virtualguard101/cs106l-assignments.git
-[submodule "cca/cs61c"]
-	path = cca/cs61c
-	url = git@github.com:virtualguard101/cs61c.git
 [submodule "network/netdiy"]
 	path = network/netdiy
 	url = git@github.com:virtualguard101/netdiy.git
@@ -22,9 +16,12 @@
 [submodule "network/netstack/references"]
 	path = network/netstack/references
 	url = git@github.com:google/netstack.git
-[submodule "system/cs110"]
-	path = system/cs110
-	url = git@github.com:virtualguard101/cs110.git
 [submodule "docs/wiki"]
 	path = docs/wiki
 	url = git@github.com:virtualguard101/wiki.git
+[submodule "ecos/cs61c"]
+	path = ecos/cs61c
+	url = git@github.com:virtualguard101/cs61c.git
+[submodule "ecos/cs110"]
+	path = ecos/cs110
+	url = https://github.com/virtualguard101/cs110.git

@@ -1,6 +1,7 @@
 alias u := update
 alias p := push
 alias s := sync
+alias ds := deinit-submodule
 
 update msg:
     git add .
@@ -15,3 +16,8 @@ sync:
 bootstrap:
     git submodule update --init --recursive
     ./scripts/bootstrap.sh
+
+deinit-submodule path:
+    git submodule deinit -f -- {{ path }}
+    rm -rf .git/modules/{{ path }}
+    git rm -f {{ path }}
