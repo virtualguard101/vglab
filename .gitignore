@@ -17,3 +17,6 @@ Cargo.lock
 .idea/
 
 build-*/
+
+# logisim autosave
+*.circ.autosave
