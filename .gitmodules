@@ -1,3 +1,6 @@
+[submodule "docs/wiki"]
+	path = docs/wiki
+	url = git@github.com:virtualguard101/wiki.git
 [submodule "os/ostep-code"]
 	path = os/ostep-code
 	url = git@github.com:virtualguard101/ostep-code.git
@@ -10,18 +13,9 @@
 [submodule "network/netdiy"]
 	path = network/netdiy
 	url = git@github.com:virtualguard101/netdiy.git
-[submodule "infrastructure/cuda/cuda-learning"]
-	path = infrastructure/cuda/cuda-learning
-	url = git@github.com:virtualguard101/cuda-learning.git
 [submodule "network/netstack/references"]
 	path = network/netstack/references
 	url = git@github.com:google/netstack.git
-[submodule "docs/wiki"]
-	path = docs/wiki
-	url = git@github.com:virtualguard101/wiki.git
-[submodule "ecos/cs61c"]
-	path = ecos/cs61c
+[submodule "csa/cs61c"]
+	path = csa/cs61c
 	url = git@github.com:virtualguard101/cs61c.git
-[submodule "ecos/cs110"]
-	path = ecos/cs110
-	url = https://github.com/virtualguard101/cs110.git
