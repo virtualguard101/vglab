@@ -4,9 +4,6 @@
 [submodule "os/ostep-code"]
 	path = os/ostep-code
 	url = git@github.com:virtualguard101/ostep-code.git
-[submodule "ai/dl/ForyoClassifierCNN"]
-	path = ai/dl/ForyoClassifierCNN
-	url = git@github.com:virtualguard101/ForyoClassifierCNN.git
 [submodule "lang/cpp/cs106l"]
 	path = lang/cpp/cs106l
 	url = git@github.com:virtualguard101/cs106l-assignments.git
