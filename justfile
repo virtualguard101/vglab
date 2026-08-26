@@ -12,3 +12,12 @@ deinit-submodule path:
     git submodule deinit -f -- {{ path }}
     rm -rf .git/modules/{{ path }}
     git rm -f {{ path }}
+
+ostep:
+    cursor os/ostep-code
+
+cs61c:
+    cursor csa/cs61c
+
+minirv32:
+    cursor csa/minirv32
