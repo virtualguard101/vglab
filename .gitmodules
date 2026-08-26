@@ -16,3 +16,6 @@
 [submodule "csa/cs61c"]
 	path = csa/cs61c
 	url = git@github.com:virtualguard101/cs61c.git
+[submodule "csa/minirv32"]
+	path = csa/minirv32
+	url = git@github.com:virtualguard101/minirv32.git
