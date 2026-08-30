@@ -20,3 +20,14 @@ build-*/
 
 # logisim autosave
 *.circ.autosave
+
+# c generated files
+*.o
+*.exe
+*.out
+*.a
+*.so
+*.dll
+*.lib
+*.exp
+*.def
