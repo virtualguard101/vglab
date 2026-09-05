@@ -31,3 +31,6 @@ build-*/
 *.lib
 *.exp
 *.def
+
+# gdb
+.gdb_history
