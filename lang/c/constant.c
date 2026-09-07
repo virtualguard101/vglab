@@ -1,7 +1,8 @@
 #include <stdio.h>
 
-int main() {
-    printf("%c\n", '%');
+int main()
+{
+	printf("%c\n", '%');
 
-    return 0;
+	return 0;
 }
