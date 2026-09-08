@@ -66,12 +66,17 @@ Rational sub_rational(Rational a, Rational b)
 
 Rational mul_rational(Rational a, Rational b)
 {
-	return divided((Rational) {a.numerator * b.numerator, a.denominator * b.denominator});
+	return divided((Rational) {
+		       a.numerator * b.numerator,
+		       a.denominator * b.denominator}
+	);
 }
 
 Rational div_rational(Rational a, Rational b)
 {
-	return mul_rational(a, (Rational) {b.denominator, b.numerator});
+	return mul_rational(a, (Rational) {
+			    b.denominator, b.numerator}
+	);
 }
 
 int main()
