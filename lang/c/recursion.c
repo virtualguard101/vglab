@@ -1,8 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 int gcd(int a, int b)
 {
-	return b == 0 ? a : gcd(b, a % b);
+	int _a = abs(a);
+	int _b = abs(b);
+	return _b == 0 ? _a : gcd(_b, _a % _b);
 }
 
 int fibonacci(int n)
