@@ -80,6 +80,35 @@ int insert_sort_binary(int arr[], int len, int *cmp, int *mov)
 	return 0;
 }
 
+/* 0 下标, 无哨兵. tmp 暂存待插入元素, 不可用 arr[0], 否则会覆盖数据.
+ * 增量序列 Hibbard 的简化版: n/2, n/4, ..., 1 */
+int shell_sort(int arr[], int len, int *cmp, int *mov)
+{
+	int dk, i, j, tmp;
+
+	*cmp = *mov = 0;
+	for (dk = len / 2; dk > 0; dk /= 2) {
+		for (i = dk; i < len; ++i) {
+			++*cmp;
+			if (arr[i] < arr[i - dk]) {	/* 小于同组前驱才插入 */
+				tmp = arr[i];
+				++*mov;
+				for (j = i - dk; j >= 0 && tmp < arr[j];
+				     j -= dk) {
+					++*cmp;
+					arr[j + dk] = arr[j];	/* 同组后移 */
+					++*mov;
+				}
+				if (j >= 0)
+					++*cmp;	/* 循环因 tmp >= arr[j] 结束 */
+				arr[j + dk] = tmp;
+				++*mov;
+			}
+		}
+	}
+	return 0;
+}
+
 typedef int (*sort_fn)(int *, int, int *, int *);
 
 static void run(const char *name, const char *algo, sort_fn fn,
@@ -87,16 +116,20 @@ static void run(const char *name, const char *algo, sort_fn fn,
 {
 	int buf[32];
 	int cmp, mov;
+	const int *out;
 
 	if (with_slot0) {
 		buf[0] = 0;
 		memcpy(buf + 1, src, (size_t) n * sizeof(int));
 		fn(buf, n + 1, &cmp, &mov);
+		out = buf + 1;
 	} else {
 		memcpy(buf, src, (size_t) n * sizeof(int));
 		fn(buf, n, &cmp, &mov);
+		out = buf;
 	}
-	printf("  %-10s %-10s %6d %6d\n", name, algo, cmp, mov);
+	printf("  %-10s %-10s %6d %6d", name, algo, cmp, mov);
+	printf("\n");
 }
 
 int main()
@@ -116,6 +149,7 @@ int main()
 		    groups[g], 5, 1);
 		run(names[g], "binary", insert_sort_binary, groups[g], 5,
 		    1);
+		run(names[g], "shell", shell_sort, groups[g], 5, 0);
 	}
 	return 0;
 }
