@@ -100,7 +100,7 @@ int shell_sort(int arr[], int len, int *cmp, int *mov)
 					++*mov;
 				}
 				if (j >= 0)
-					++*cmp;	/* 循环因 tmp >= arr[j] 结束 */
+					++ * cmp;	/* 循环因 tmp >= arr[j] 结束 */
 				arr[j + dk] = tmp;
 				++*mov;
 			}
