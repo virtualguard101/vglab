@@ -37,10 +37,10 @@ int order_statistics(int *arr, int start, int end, int k)
 
 int main()
 {
-	int arr[] = {3, 2, 1, 5, 6, 4};
+	int arr[] = { 3, 2, 1, 5, 6, 4 };
 	int n = sizeof(arr) / sizeof(arr[0]);
 	int k = 0;
 	int result = order_statistics(arr, 0, n - 1, k);
-	printf("The %dth smallest element is %d\n", k+1, result);
+	printf("The %dth smallest element is %d\n", k + 1, result);
 	return 0;
 }
