@@ -16,7 +16,8 @@ struct mgraph {
  * @param v 顶点
  * @return int 第一个邻接点
  */
-int first_neighbor_for_mgraph(struct mgraph *G, int v) {
+int first_neighbor_for_mgraph(struct mgraph *G, int v)
+{
 	for (int j = 0; j < G->vexnum; ++j) {
 		if (G->edge[v][j] != 0) {
 			return j;
@@ -33,7 +34,8 @@ int first_neighbor_for_mgraph(struct mgraph *G, int v) {
  * @param w 当前顶点的邻接点
  * @return int 下一个邻接点
  */
-int next_neighbor_for_mgraph(struct mgraph *G, int v, int w) {
+int next_neighbor_for_mgraph(struct mgraph *G, int v, int w)
+{
 	for (int j = w + 1; j < G->vexnum; ++j) {
 		if (G->edge[v][j] != 0) {
 			return j;
@@ -76,7 +78,8 @@ struct adj_list_graph {
  * @param v 顶点
  * @return int 第一个邻接点
  */
-int first_neighbor_for_algraph(struct adj_list_graph *G, int v) {
+int first_neighbor_for_algraph(struct adj_list_graph *G, int v)
+{
 	if (!G->vexs[v].first) {
 		return -1;
 	}
@@ -92,7 +95,8 @@ int first_neighbor_for_algraph(struct adj_list_graph *G, int v) {
  * @param w 当前顶点的邻接点
  * @return int 下一个邻接点
  */
-int next_neighbor_for_algraph(struct adj_list_graph *G, int v, int w) {
+int next_neighbor_for_algraph(struct adj_list_graph *G, int v, int w)
+{
 	struct arc_node *p = G->vexs[v].first;
 	while (p && p->adjvex != w) {
 		p = p->next;
