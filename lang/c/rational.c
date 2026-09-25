@@ -1,12 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 typedef struct {
 	int numerator;
 	int denominator;
 } Rational;
-
 
 int gcd(int a, int b)
 {
@@ -48,8 +46,7 @@ Rational add_rational(Rational a, Rational b)
 	if (a.denominator != b.denominator) {
 		a.denominator = a.denominator * b.denominator;
 		a.numerator =
-		    a.numerator * b.denominator +
-		    b.numerator * a.denominator;
+		    a.numerator * b.denominator + b.numerator * a.denominator;
 	} else {
 		a.numerator = a.numerator + b.numerator;
 	}
@@ -67,8 +64,7 @@ Rational sub_rational(Rational a, Rational b)
 Rational mul_rational(Rational a, Rational b)
 {
 	return divided((Rational) {
-		       a.numerator * b.numerator,
-		       a.denominator * b.denominator}
+		       a.numerator * b.numerator, a.denominator * b.denominator}
 	);
 }
 

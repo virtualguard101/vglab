@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 enum coordinate_type { RECTANGULAR = 1, POLAR };
 typedef struct {
 	enum coordinate_type t;
@@ -26,7 +25,6 @@ Complex make_from_mag_ang(double r, double theta)
 	c.t = POLAR;
 	return c;
 }
-
 
 double real(Complex c)
 {
@@ -75,7 +73,6 @@ double angle(Complex c)
 		exit(EXIT_FAILURE);
 	}
 }
-
 
 Complex add_complex(Complex a, Complex b)
 {

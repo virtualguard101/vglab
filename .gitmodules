@@ -19,3 +19,6 @@
 [submodule "csa/minirv32"]
 	path = csa/minirv32
 	url = git@github.com:virtualguard101/minirv32.git
+[submodule "os/learn-linux"]
+	path = os/learn-linux
+	url = git@github.com:virtualguard101/learn-linux.git
