@@ -1,0 +1,112 @@
+alias cpp := preprocess
+
+cflags := "-Wall -Wextra -std=c11"
+
+[private]
+default:
+    @just --list
+
+# 编译并运行一个 .c. 例: just run ceiling.c, 链接参数放后面
+run src *flags:
+    mkdir -p build
+    gcc {{cflags}} {{src}} -o build/demo {{flags}}
+    ./build/demo
+
+[private]
+_run src out *flags:
+    mkdir -p build
+    gcc {{cflags}} {{src}} -o build/{{out}} {{flags}}
+    ./build/{{out}}
+
+# 百分号怎么打印
+[group('run')]
+escape: (_run "escape.c" "escape")
+
+# x/n 的向下取整和向上取整
+[group('run')]
+ceiling: (_run "ceiling.c" "ceiling")
+
+# 随机数直方图
+[group('run')]
+histogram: (_run "histogram.c" "histogram")
+
+# 类型宽度, 整数提升, 有符号和无符号
+[group('run')]
+types: (_run "types.c" "types")
+
+# 位运算, 移位, 掩码, 其它运算符
+[group('run')]
+bitop: (_run "bitop.c" "bitop")
+
+# 预处理. 模式可叠加: 8086, 68000, E. 例: just preprocess 8086 E
+[group('run')]
+preprocess *mode:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p build
+    expand=0
+    extra=""
+    if [ -n "{{mode}}" ]; then
+        for m in {{mode}}; do
+            case "$m" in
+                E) expand=1 ;;
+                8086|68000)
+                    if [ -n "$extra" ]; then
+                        echo "only one of 8086 or 68000" >&2
+                        exit 1
+                    fi
+                    extra="-DMACHINE=$m"
+                    ;;
+                *) echo "unknown mode: $m (want 8086, 68000, E)" >&2; exit 1 ;;
+            esac
+        done
+    fi
+    if [ "$expand" = 1 ]; then
+        gcc -E -std=c11 $extra preprocesser.c -o build/preprocesser.i
+        echo "wrote build/preprocesser.i"
+    else
+        gcc {{cflags}} $extra preprocesser.c -o build/preprocesser
+        ./build/preprocesser
+    fi
+
+# 复数四则运算
+[group('run')]
+complex: (_run "complex.c" "complex" "-D_DEFAULT_SOURCE" "-lm")
+
+# 九九表和菱形
+[group('run')]
+iteration: (_run "iteration.c" "iteration" "-lm")
+
+# 有理数四则运算
+[group('run')]
+rational: (_run "rational.c" "rational")
+
+# 递归 gcd 和斐波那契, 标准输入喂 12 18
+[group('run')]
+recursion:
+    mkdir -p build
+    gcc {{cflags}} recursion.c -o build/recursion
+    printf '12 18\n' | ./build/recursion
+
+# gdb/<name>: fibo sum loop segfault memcheck. 第二参数 run 只运行, 默认进入 gdb
+[group('gdb')]
+gdb name mode="gdb":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mkdir -p build
+    gcc {{cflags}} -g -O0 "gdb/{{name}}.c" -o "build/{{name}}"
+    case "{{mode}}" in
+        gdb) gdb -q "build/{{name}}" ;;
+        run) "./build/{{name}}" ;;
+        *) echo "unknown mode: {{mode}} (want gdb or run)" >&2; exit 1 ;;
+    esac
+
+# 删除 build 和 a.out
+[group('maint')]
+clean:
+    rm -rf build *.o a.out
+
+# indent 格式化 *.c 和 gdb/*.c
+[group('maint')]
+format:
+    indent -npro -kr -i8 -ts8 -sob -l80 -ss -ncs -cp1 -il0 *.c gdb/*.c && rm -f *.c~ gdb/*.c~
