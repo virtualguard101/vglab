@@ -1,0 +1,21 @@
+set shell := ["bash", "-cu"]
+
+# 安装依赖 (需要本机已有 Node.js >= 20 与 pnpm)
+bootstrap:
+    pnpm install
+
+# 本地开发服务器
+dev:
+    pnpm dev
+
+# 类型检查
+check:
+    pnpm check
+
+# 与 Vercel 相同的生产构建, 产物在 dist/
+build:
+    ./scripts/up.sh
+
+# 预览 dist/
+preview:
+    pnpm preview
