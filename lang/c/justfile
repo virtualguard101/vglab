@@ -81,6 +81,10 @@ iteration: (_run "iteration.c" "iteration" "-lm")
 [group('run')]
 rational: (_run "rational.c" "rational")
 
+# strcpy_sim / shrink_space
+[group('run')]
+stringop: (_run "stringop.c" "stringop")
+
 # 递归 gcd 和斐波那契, 标准输入喂 12 18
 [group('run')]
 recursion:
