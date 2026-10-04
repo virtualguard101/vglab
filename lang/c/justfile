@@ -85,6 +85,10 @@ rational: (_run "rational.c" "rational")
 [group('run')]
 stringop: (_run "stringop.c" "stringop")
 
+# 耗尽内存观察 malloc 失败 (会吃光内存, 慎用)
+[group('run')]
+memconsume: (_run "memconsume.c" "memconsume")
+
 # 递归 gcd 和斐波那契, 标准输入喂 12 18
 [group('run')]
 recursion:
