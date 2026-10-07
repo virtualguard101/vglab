@@ -85,6 +85,10 @@ rational: (_run "rational.c" "rational")
 [group('run')]
 stringop: (_run "stringop.c" "stringop")
 
+# 折半插入排序 + 折半查找回调
+[group('run')]
+callback: (_run "callback.c" "callback")
+
 # 耗尽内存观察 malloc 失败 (会吃光内存, 慎用)
 [group('run')]
 memconsume: (_run "memconsume.c" "memconsume")
