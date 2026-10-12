@@ -1,0 +1,104 @@
+# bof-lab —— 缓冲区溢出实验构建 / 演示脚本
+#
+# 关键：各阶段用“互相矛盾”的编译标志，这本身就是教学内容。
+#   脆弱目标 (part3) 必须关掉所有现代防御，攻击 (part4) 才打得通；
+#   防御阶段 (part5/canary) 再把防御逐个打开，对照观察。
+#
+# 用法：
+#   just            列出所有命令
+#   just build      编译全部靶子与工具到 build/
+#   just demo       从头到尾跑一遍完整攻击链（无需手动输地址）
+#   just defense    演示四层防御如何逐一拦截同一发 payload
+#   just clean      清空 build/
+
+src := "src"
+build := "build"
+cc := "gcc"
+
+# 脆弱构建标志：关 canary、非 PIE、栈可执行。缺一不可（见 shellcode.h §4）
+vuln_flags := "-O0 -g -fno-stack-protector -no-pie -z execstack -Wno-deprecated-declarations"
+# 工具（攻击端）：正常构建即可，它不是被攻击对象
+tool_flags := "-O2 -Wall"
+
+default:
+    @just --list
+
+# ---- 编译 ----
+build: _mkbuild
+    # 01 不安全函数演示：两种构建对照（带/不带 canary）
+    {{cc}} {{vuln_flags}} {{src}}/unsafe.c -o {{build}}/unsafe
+    {{cc}} -O0 -g -fstack-protector-all {{src}}/unsafe.c -o {{build}}/unsafe_canary -Wno-deprecated-declarations
+    # 02 栈布局剖析
+    {{cc}} {{vuln_flags}} {{src}}/dissect.c -o {{build}}/dissect
+    # 03 被攻击的目标（必须是脆弱构建）
+    {{cc}} {{vuln_flags}} {{src}}/vulnerable.c -o {{build}}/vulnerable
+    # 04 攻击端工具
+    {{cc}} {{tool_flags}} {{src}}/exploit.c -o {{build}}/exploit
+    # 05 防御：安全重写版
+    {{cc}} -O0 -g -fstack-protector-strong {{src}}/defense.c -o {{build}}/defense -Wno-deprecated-declarations
+    # 05 canary 对照：有保护 vs 无保护
+    {{cc}} -O0 -g -fstack-protector-all {{src}}/canary_probe.c -o {{build}}/canary_probe
+    {{cc}} -O0 -g -fno-stack-protector {{src}}/canary_probe.c -o {{build}}/canary_probe_off
+    @echo "✓ 全部构建完成 → {{build}}/"
+
+_mkbuild:
+    @mkdir -p {{build}}
+
+# ---- 阶段演示 ----
+
+# 01：五种不安全函数（默认跑 strcpy 溢出；带 canary 构建会被 abort 拦下）
+unsafe: build
+    @echo "== 无保护构建: strcpy 溢出 → 返回地址被 0x41 覆盖 → SIGSEGV =="
+    -./{{build}}/unsafe 1
+    @echo
+    @echo "== 带 canary 构建：同样输入，后果取决于编译器栈帧布局 =="
+    @echo "   (有的 case 会侥幸存活: canary 的确定性演示见 'just defense') =="
+    -./{{build}}/unsafe_canary 1
+
+# 02：看栈布局 + 改返回地址跳过一条语句
+dissect: build
+    @echo "== 栈布局 [buffer | saved RBP | return addr] =="
+    ./{{build}}/dissect layout
+    @echo
+    @echo "== 修改返回地址跳过赋值语句(论文 example3)=="
+    -DISSECT_MODE=redirect ./{{build}}/dissect
+
+# 03：目标在泄露模式下自曝地址（真实攻击靠泄露/爆破获得）
+leak: build
+    VULN_DEBUG=1 ./{{build}}/vulnerable test
+
+# 04：完整攻击链。先关 ASLR（教学），用泄露地址打一发交互 shell
+demo: build
+    @echo "== payload 布局=="
+    ./{{build}}/exploit -x
+    @echo
+    @echo "== 自动爆破: fork/exec 目标，检测 shell 弹出 =="
+    @echo "   (若命中会打印 PWNED; ASLR 开启时请用 'just demo-noaslr')"
+    -./{{build}}/exploit -z -t {{build}}/vulnerable
+
+# 04b：在关闭 ASLR 的子 shell 里跑，命中率最高（需要 setarch 或 sysctl 权限）
+noaslr: build
+    @echo "== 关闭本进程 ASLR 后自动爆破 =="
+    -setarch $(uname -m) -R ./{{build}}/exploit -z -t {{build}}/vulnerable
+
+# 05：防御演示——同一发超长输入打到安全版本上，四层各自的反应
+defense: build
+    @echo "== 源码层: 安全 API 把超长输入截断/拒绝，返回地址毫发无损 =="
+    @python3 -c "print('A'*300)" | { read s; \
+      ./{{build}}/defense 1 "$s"; ./{{build}}/defense 2 "$s"; ./{{build}}/defense 3 "$s"; }
+    @echo
+    @echo "== 编译器层: canary 拦截溢出(SIGABRT)=="
+    -./{{build}}/canary_probe smash 200
+    @echo
+    @echo "== 对照：无 canary 同样溢出 → 直达返回地址(SIGSEGV)=="
+    -./{{build}}/canary_probe_off smash 200
+    @echo
+    @echo "== canary 随机性：连跑两次，哨兵值不同 =="
+    ./{{build}}/canary_probe show
+    ./{{build}}/canary_probe show
+
+# 一键跑完全链条
+all: unsafe dissect leak noaslr defense
+
+clean:
+    rm -rf {{build}}

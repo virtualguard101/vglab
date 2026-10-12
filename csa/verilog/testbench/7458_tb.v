@@ -2,8 +2,8 @@
  * Self-checking testbench for HDLBits 7458 (top_module in 7458.v).
  *
  * Usage:
- * iverilog -g2012 -Wall -o 7458.vvp 7458.v 7458_tb.v
- * vvp 7458.vvp
+ *    iverilog -g2012 -Wall -o 7458.vvp 7458.v 7458_tb.v
+ *    vvp 7458.vvp
  */
 
 module tb_7458;

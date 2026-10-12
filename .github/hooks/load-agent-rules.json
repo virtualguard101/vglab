@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "command": "node .github/hooks/load-agent-rules.cjs",
+        "cwd": ".",
+        "timeoutSec": 15
+      }
+    ]
+  }
+}
