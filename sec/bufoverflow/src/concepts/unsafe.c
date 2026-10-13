@@ -1,32 +1,32 @@
 /*
- * part1_unsafe.c - 经典不安全 C 字符串/IO 函数的溢出行为(对照论文 "Finding Buffer Overflows" 一节)
+ * unsafe.c - 经典不安全 C 字符串/IO 函数的溢出行为(Finding Buffer Overflows)
  *
- * 论文要点:C 标准库中这些函数不做边界检查--
+ * 论文要点: C 标准库中这些函数不做边界检查--
  *   strcpy(), strcat(), sprintf(), vsprintf(), gets(),
  *   scanf("%s"), getc/fgetc/getchar 循环
  *
- * 本文件 5 个小节,每个小节独立函数 + main 的参数选择.
+ * 本文件 5 个小节, 每个小节独立函数 + main 的参数选择.
  * 触发溢出会看到(取决于构建方式与编译器的栈帧布局):
- *   - 无栈保护构建:返回地址被 'A'(0x41) 覆盖 -> ret 到 0x41...41 -> SIGSEGV
- *   - 栈保护构建:canary 被破坏 -> *** stack smashing detected *** -> SIGABRT
- * 两点提醒:
- *   a) 是否崩溃/崩在哪,依赖编译器如何摆放这些数组--有的 case 在带保护
- *      构建下会"侥幸存活"(溢出恰好落在同帧的另一个数组里,没碰到 canary).
- *      这本身是教学点:溢出的后果是布局相关的/不确定的.
+ *   - 无栈保护构建: 返回地址被 'A'(0x41) 覆盖 -> ret 到 0x41...41 -> SIGSEGV
+ *   - 栈保护构建: canary 被破坏 -> *** stack smashing detected *** -> SIGABRT
+ * Note:
+ *   a) 是否崩溃/崩在哪, 依赖编译器如何摆放这些数组--有的 case 在带保护
+ *      构建下会"侥幸存活"(溢出恰好落在同帧的另一个数组里, 没碰到 canary).
+ *      溢出的后果是布局相关的/不确定的.
  *   b) canary 的确定性演示见 canary_probe.c(单缓冲,必触发 __stack_chk_fail).
  *
- * 用法:./unsafe [1-5]
+ * Usage: ./build/unsafe [1-5]
  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* gets() 太危险,C11 从标准移除/现代 <stdio.h> 不再声明它,
- * 但 glibc 仍保留符号以兼容老二进制.手动声明以演示这个历史反例.
- * 这件事本身就是教学点:危险 API 会被语言标准"除名". */
+/* gets() 太危险, C11 从将其从标准中移除, 现代 <stdio.h> 不再声明它,
+ * 但 glibc 仍保留符号以兼容老二进制. 这里手动声明以演示这个历史反例.
+ */
 extern char *gets(char *);
 
-/* ---------- 1. strcpy:无界拷贝,论文 example2.c 的原样复现 ---------- */
+/* ---------- strcpy无界拷贝, 论文 example2.c 复刻 ---------- */
 static void demo_strcpy(void)
 {
 	char buffer[16];
@@ -35,25 +35,25 @@ static void demo_strcpy(void)
 	memset(large_string, 'A', sizeof(large_string) - 1);
 	large_string[sizeof(large_string) - 1] = '\0';
 
-	puts("[1] strcpy(buffer[16], large_string[256]) - Aleph One example2.c");
-	/* flaw: strcpy 不检查目标大小,256 字节灌进 16 字节的栈缓冲区 */
+	puts("[1] strcpy(buffer[16], large_string[256])");
+	/* flaw: strcpy 不检查目标大小, 256 字节灌进 16 字节的栈缓冲区 */
 	strcpy(buffer, large_string);
-	printf("survived: %zu bytes copied?\n", strlen(buffer));
+	printf("survived: %zu bytes copied (skeptically)\n", strlen(buffer));
 }
 
-/* ---------- 2. gets:读一行且无法限制长度,C11 已移除 ---------- */
+/* ---------- gets读一行且无法限制长度 ---------- */
 static void demo_gets(void)
 {
 	char buffer[8];
 	puts("[2] gets(buffer[8]) - more than 7 characters overflows (try 16 As and Enter)");
 	printf("input> ");
 	fflush(stdout);
-	/* flaw: gets 无法限制读入长度,POSIX.1-2008 标记 obsolete,C11 直接删除 */
+	/* flaw: gets 无法限制读入长度, POSIX.1-2008 标记 obsolete, C11 直接删除 */
 	gets(buffer);		/* gcc 会警告: the `gets' function is dangerous */
 	printf("got: %s\n", buffer);
 }
 
-/* ---------- 3. sprintf:无界格式化进固定缓冲区 ---------- */
+/* ---------- sprintf无界格式化进固定缓冲区 ---------- */
 static void demo_sprintf(void)
 {
 	char buffer[32];
@@ -67,7 +67,7 @@ static void demo_sprintf(void)
 	printf("got: %s\n", buffer);
 }
 
-/* ---------- 4. scanf("%s"):%s 无宽度限定 == gets ---------- */
+/* ---------- 4. scanf("%s"): %s 无宽度限定, 和 gets 类似 ---------- */
 static void demo_scanf(void)
 {
 	char buffer[16];
@@ -78,7 +78,7 @@ static void demo_scanf(void)
 		printf("got: %s\n", buffer);
 }
 
-/* ---------- 5. getc 循环:论文点名的"直到分隔符"模式 ---------- */
+/* ---------- 5. getc 循环: "直到分隔符"模式 ---------- */
 static void demo_getchar_loop(void)
 {
 	char buffer[16];
