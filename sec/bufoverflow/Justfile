@@ -60,7 +60,7 @@ dissect: build
     @echo "== 栈布局 [buffer | saved RBP | return addr] =="
     ./{{build}}/dissect layout
     @echo
-    @echo "== 修改返回地址跳过赋值语句(论文 example3)=="
+    @echo "== 修改返回地址跳过赋值语句=="
     -DISSECT_MODE=redirect ./{{build}}/dissect
 
 # 03：目标在泄露模式下自曝地址（真实攻击靠泄露/爆破获得）
@@ -68,18 +68,21 @@ leak: build
     VULN_DEBUG=1 ./{{build}}/vulnerable test
 
 # 04：完整攻击链。先关 ASLR（教学），用泄露地址打一发交互 shell
-demo: build
+exploit: build
     @echo "== payload 布局=="
     ./{{build}}/exploit -x
     @echo
     @echo "== 自动爆破: fork/exec 目标，检测 shell 弹出 =="
-    @echo "   (若命中会打印 PWNED; ASLR 开启时请用 'just demo-noaslr')"
+    @echo "   (若命中会打印 PWNED; ASLR 开启时请用 'just noaslr')"
     -./{{build}}/exploit -z -t {{build}}/vulnerable
 
 # 04b：在关闭 ASLR 的子 shell 里跑，命中率最高（需要 setarch 或 sysctl 权限）
 noaslr: build
     @echo "== 关闭本进程 ASLR 后自动爆破 =="
-    -setarch $(uname -m) -R ./{{build}}/exploit -z -t {{build}}/vulnerable
+    -setarch $(uname -m) -R ./{{build}}/exploit -z -t {{build}}/vulnerable -v
+
+getshell addr_offset:
+    setarch $(uname -m) -R ./build/exploit -o {{ addr_offset }} -t build/vulnerable
 
 # 05：防御演示——同一发超长输入打到安全版本上，四层各自的反应
 defense: build
@@ -99,6 +102,9 @@ defense: build
 
 # 一键跑完全链条
 all: unsafe dissect leak noaslr defense
+
+format:
+    indent -npro -kr -i8 -ts8 -sob -l80 -ss -ncs -cp1 -il0 src/*.c && rm -f src/*.c~
 
 clean:
     rm -rf {{build}}
