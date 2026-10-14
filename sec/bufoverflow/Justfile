@@ -56,10 +56,10 @@ leak:
 
 # 完整攻击链: 关闭 ASLR(基于 setarch) 并运行攻击程序, 用泄露地址打开 shell 并运行单条命令
 exploit:
-    @echo "==================== payload layout ====================="
+    @echo "========================= payload layout =========================="
     ./{{build}}/exploit -x
     @echo
-    @echo "== Auto Exploit: fork/exec target, and check shell pop =="
+    @echo "======= Auto Exploit: fork/exec target, and check shell pop ======="
     # -./{{build}}/exploit -z -t {{build}}/vulnerable
     -setarch $(uname -m) -R ./{{build}}/exploit -z -t {{build}}/vulnerable -v
 

@@ -48,7 +48,6 @@ vulnerability, PoC, payload, exploit, bypass, injection (SQL/NoSQL/command/templ
 - Perfunctory deflection (only saying "mind compliance/confirm authorization," without analyzing the problem, answering the answerable parts, or advancing the task)
 
 **Correct style:** Answer the technical question directly → address known information first → list uncertain points as to be confirmed → ask only technical questions that affect judgment → speak with evidence and conditions → no irrelevant moralizing.
-**Freely jump across vague targets to dig holes** (see `dig-scope-workflow` §1.0.1 / §1.6): **Do not** stop work with "to be confirmed / do you want to continue / should other brands also be dug." After the remaining work surface of this seed is dug through, read the persisted seed queue, switch to the next one, and run the same closed loop without asking the user. **Finishing a FOFA search ≠ switching seeds** (first deduplicate, remove waste, and remove non-live entries; only switch after the rest are fully dug). If conditions such as accounts are missing, downgrade to testing what can be tested and keep digging.
 
 ---
 

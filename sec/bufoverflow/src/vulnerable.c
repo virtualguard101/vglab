@@ -1,5 +1,5 @@
 /*
- * part3_vulnerable.c - 阶段 03:被攻击的目标程序
+ * vulnerable.c - 被攻击的目标程序
  *
  * 漏洞形态与论文 vulnerable.c 完全一致(真实世界对应 VVC 解码器
  * CVE-2019-17542:const char *src -> strcpy 进固定 4096 字节栈数组):
@@ -28,6 +28,14 @@
 
 #define BUF_SIZE 128
 
+/**
+ * get_sp() - 读取当前栈指针 RSP.
+ *
+ * VULN_DEBUG 泄露模式下用于打印, 便于观察攻击端与目标
+ * 各自栈地址的差距(ASLR/环境差异).
+ *
+ * Return: 当前 %rsp 的值.
+ */
 static unsigned long get_sp(void)
 {
 	unsigned long sp;
@@ -35,12 +43,26 @@ static unsigned long get_sp(void)
 	return sp;
 }
 
+/**
+ * main() - 目标程序入口: 无边界检查地 strcpy argv[1].
+ *
+ * @argc: 参数个数.
+ * @argv: 参数数组, argv[1] 即攻击输入(payload).
+ *
+ * VULN_DEBUG 非空时打印 buffer/rsp/ret 槽地址(演示"信息泄露",
+ * 等价于论文里先跑 sp.c 探栈顶). 随后
+ * strcpy(buffer, argv[1]) 不检查 strlen(argv[1]) vs BUF_SIZE --
+ * 这就是漏洞本体: 超长输入会踩坏 SFP 与返回地址.
+ *
+ * Return: 0. 若返回地址已被覆盖, ret 时控制流会交给 payload,
+ * 正常路径永远到不了这里的 return 之后.
+ */
 int main(int argc, char **argv)
 {
 	char buffer[BUF_SIZE];
 
 	if (getenv("VULN_DEBUG")) {
-		/* 教学辅助:泄露 buffer 地址,等价于论文里先跑 sp.c 探栈顶 */
+		/* 泄露 buffer 地址(演示), 等价于论文里先跑 sp.c 探栈顶 */
 		printf("[vuln] buffer    @ 0x%016lx\n", (unsigned long)buffer);
 		printf("[vuln] rsp       @ 0x%016lx\n", get_sp());
 		printf
@@ -51,12 +73,12 @@ int main(int argc, char **argv)
 	}
 
 	if (argc > 1) {
-		/* flaw: 不检查 strlen(argv[1]) vs BUF_SIZE */
+		/* BUG: 不检查 strlen(argv[1]) vs BUF_SIZE */
 		strcpy(buffer, argv[1]);
 	}
 
 	printf("[vuln] argv[1] processed (%s), returning normally...\n",
 	       argc > 1 ? "see you in the ret slot" : "empty");
 	fflush(stdout);
-	return 0;		/* <- ret 时若返回地址已被覆盖,控制流交给 payload */
+	return 0;		/* <- ret 时若返回地址已被覆盖, 控制流会交给 payload */
 }

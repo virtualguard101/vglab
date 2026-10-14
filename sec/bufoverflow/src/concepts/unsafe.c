@@ -26,7 +26,12 @@
  */
 extern char *gets(char *);
 
-/* ---------- strcpy无界拷贝, 论文 example2.c 复刻 ---------- */
+/**
+ * demo_strcpy() - 1. strcpy: 无界拷贝, 论文 example2.c 复刻.
+ *
+ * flaw: strcpy 不检查目标大小,
+ * 256 字节灌进 16 字节的栈缓冲区.
+ */
 static void demo_strcpy(void)
 {
 	char buffer[16];
@@ -41,7 +46,13 @@ static void demo_strcpy(void)
 	printf("survived: %zu bytes copied (skeptically)\n", strlen(buffer));
 }
 
-/* ---------- gets读一行且无法限制长度 ---------- */
+/**
+ * demo_gets() - 2. gets: 读一行且无法限制长度.
+ *
+ * flaw: gets 无法限制读入长度,
+ * POSIX.1-2008 标记 obsolete, C11 直接删除.
+ * gcc 会警告: the `gets' function is dangerous.
+ */
 static void demo_gets(void)
 {
 	char buffer[8];
@@ -53,7 +64,11 @@ static void demo_gets(void)
 	printf("got: %s\n", buffer);
 }
 
-/* ---------- sprintf无界格式化进固定缓冲区 ---------- */
+/**
+ * demo_sprintf() - 3. sprintf: 无界格式化进固定缓冲区.
+ *
+ * flaw: 128 字节源格式化进 32 字节目标.
+ */
 static void demo_sprintf(void)
 {
 	char buffer[32];
@@ -67,7 +82,12 @@ static void demo_sprintf(void)
 	printf("got: %s\n", buffer);
 }
 
-/* ---------- 4. scanf("%s"): %s 无宽度限定, 和 gets 类似 ---------- */
+/**
+ * demo_scanf() - 4. scanf("%s"): %s 无宽度限定, 和 gets 类似.
+ *
+ * 本函数演示的是正解: 用 "%15s" 限定最大 15 字符 + NUL;
+ * 不带宽度的 "%s" 就是 gets 的翻版.
+ */
 static void demo_scanf(void)
 {
 	char buffer[16];
@@ -78,7 +98,12 @@ static void demo_scanf(void)
 		printf("got: %s\n", buffer);
 }
 
-/* ---------- 5. getc 循环: "直到分隔符"模式 ---------- */
+/**
+ * demo_getchar_loop() - 5. getc 循环: "直到分隔符"模式.
+ *
+ * flaw: 论文原文的循环没有 i < sizeof(buffer) 这一界,
+ * 长输入直接写穿. 本函数的循环补上了这个界作为正解.
+ */
 static void demo_getchar_loop(void)
 {
 	char buffer[16];
@@ -95,6 +120,18 @@ static void demo_getchar_loop(void)
 	printf("got: %s\n", buffer);
 }
 
+/**
+ * main() - 演示入口: 按 argv[1] 分发五组不安全函数演示.
+ *
+ * @argc: 参数个数.
+ * @argv: 参数数组, argv[1] 取 1-5 选择演示小节(默认 1).
+ *
+ * 触发溢出时的可观测结果见文件头注释
+ * (无栈保护 -> SIGSEGV; 有栈保护 -> SIGABRT),
+ * 若控制流真的被劫持, 末尾的 puts 不会到达.
+ *
+ * Return: 0 或 1(未知模式).
+ */
 int main(int argc, char **argv)
 {
 	int which = (argc > 1) ? atoi(argv[1]) : 1;

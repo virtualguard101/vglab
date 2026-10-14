@@ -22,8 +22,16 @@
 #include <string.h>
 #include <stdint.h>
 
-/* ============ A. 栈布局观测 ============ */
-
+/**
+ * dump_stack_layout() - A. 栈布局观测: 打印 [局部变量 | sfp | ret] 的真实布局与内容.
+ *
+ * buffer 之上依次是 saved RBP (SFP)/return address.
+ * 与论文 example3 用 buffer1+12 找 RET 的思路一致,
+ * 只是 i386(4B 指针) 变成了 x86_64(8B 指针).
+ *
+ * 另打印填满 'A' 后的字节覆盖范围: 字节 17..24 覆盖 SFP,
+ * 字节 25..32 覆盖 RET, 并给出 buffer -> RET 槽的实际偏移.
+ */
 static void dump_stack_layout(void)
 {
 	char buffer[16];
@@ -53,8 +61,13 @@ static void dump_stack_layout(void)
 	fflush(stdout);
 }
 
-/* ============ B. 修改返回地址(论文 example3 复刻) ============ */
-
+/**
+ * ret_redirect() - B. 修改返回地址(论文 example3 复刻).
+ *
+ * 把本函数栈上的返回地址 += RET_SKIP_DELTA, 跳过 main 中
+ * call 之后的赋值语句(g_x = 0/1;), 让函数 return 直达 printf.
+ * 这就是"不弹 shell, 只劫持一次控制流"的最小溢出演示.
+ */
 static volatile int g_x;
 
 /* x86_64 gcc -O0 布局下, buffer1 起点到 RET 槽的距离.
@@ -84,6 +97,15 @@ static void ret_redirect(void)
 	*ret += RET_SKIP_DELTA;	/* 跳过 call 返回后的赋值语句 */
 }
 
+/**
+ * main() - 剖析入口: 通过 DISSECT_MODE 环境变量选择运行模式.
+ *
+ * 环境变量: DISSECT_MODE, 取 "layout"(默认, 栈布局观测) 或
+ * "redirect"(修改返回地址, 期望 g_x = 0).
+ * 注意: 用环境变量而非 argv, 便于在 gdb 里 set environment 复现.
+ *
+ * Return: 0 或 1(未知模式).
+ */
 int main(void)
 {
 	const char *mode = getenv("DISSECT_MODE");
@@ -91,13 +113,15 @@ int main(void)
 		mode = "layout";
 
 	if (strcmp(mode, "layout") == 0) {
-		printf("\n----------------- stack layout --------------------\n");
+		printf
+		    ("\n----------------- stack layout --------------------\n");
 		dump_stack_layout();
 		return 0;
 	}
 
 	if (strcmp(mode, "redirect") == 0) {
-		printf("\n------------- return address redirect -------------\n");
+		printf
+		    ("\n------------- return address redirect -------------\n");
 		ret_redirect();
 		g_x = 0;
 		g_x = 1;	/* 应被跳过: ret 已被改, 函数 return 直达下一行 */
