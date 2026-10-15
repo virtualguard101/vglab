@@ -41,7 +41,7 @@ static void demo_strcpy(void)
 	large_string[sizeof(large_string) - 1] = '\0';
 
 	puts("[1] strcpy(buffer[16], large_string[256])");
-	/* flaw: strcpy 不检查目标大小, 256 字节灌进 16 字节的栈缓冲区 */
+	/* BUG: strcpy 不检查目标大小, 256 字节灌进 16 字节的栈缓冲区 */
 	strcpy(buffer, large_string);
 	printf("survived: %zu bytes copied (skeptically)\n", strlen(buffer));
 }
@@ -59,7 +59,7 @@ static void demo_gets(void)
 	puts("[2] gets(buffer[8]) - more than 7 characters overflows (try 16 As and Enter)");
 	printf("input> ");
 	fflush(stdout);
-	/* flaw: gets 无法限制读入长度, POSIX.1-2008 标记 obsolete, C11 直接删除 */
+	/* BUG: gets 无法限制读入长度, POSIX.1-2008 标记 obsolete, C11 直接删除 */
 	gets(buffer);		/* gcc 会警告: the `gets' function is dangerous */
 	printf("got: %s\n", buffer);
 }
@@ -77,7 +77,7 @@ static void demo_sprintf(void)
 	user[sizeof(user) - 1] = '\0';
 
 	puts("[3] sprintf(buffer[32], \"%s\", user[128])");
-	/* flaw: 128 字节源格式化进 32 字节目标 */
+	/* BUG: 128 字节源格式化进 32 字节目标 */
 	sprintf(buffer, "%s", user);
 	printf("got: %s\n", buffer);
 }
@@ -113,7 +113,7 @@ static void demo_getchar_loop(void)
 	puts("[5] while ((c = getchar()) != '\\n') buffer[i++] - unbounded loop");
 	printf("input> ");
 	fflush(stdout);
-	/* flaw: 论文原文的循环没有 i < sizeof(buffer),长输入直接写穿 */
+	/* 论文原文的循环没有 i < sizeof(buffer), 长输入直接写穿 */
 	while ((c = getchar()) != '\n' && c != EOF && i < sizeof(buffer) - 1)
 		buffer[i++] = (char)c;
 	buffer[i] = '\0';

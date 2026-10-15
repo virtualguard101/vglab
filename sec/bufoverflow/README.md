@@ -41,7 +41,7 @@ just defense      # 05 四层防御逐一拦截
 攻击阶段要真正弹出 shell, 需要**关闭 ASLR**:
 
 ```bash
-just noaslr  # 在 setarch -R 子环境里跑, 命中率最高
+just exploit  # 在 setarch -R 子环境里跑, 命中率最高
 ```
 
 ---
