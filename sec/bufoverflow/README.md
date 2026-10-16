@@ -103,25 +103,26 @@ strcpy(buffer, argv[1]);   // 不检查长度 → 可写穿
 快速验证:
 
 ```bash
-# Canary:有保护 → SIGABRT(134), 无保护 → SIGSEGV(139)
+# Canary: 有保护 → SIGABRT(134), 无保护 → SIGSEGV(139)
 ./build/canary_probe     smash 200   # *** stack smashing detected ***
 ./build/canary_probe_off smash 200   # 段错误
 ./build/canary_probe show            # 连跑两次, 哨兵值不同(随机)
 
-# NX:把目标用可执行栈 vs 不可执行栈各编一份, 拿 exploit 打, 对比结果
+# NX: 把目标用可执行栈 vs 不可执行栈各编一份, 拿 exploit 打, 对比结果
 gcc -O0 -fno-stack-protector -no-pie -z noexecstack src/vulnerable.c -o build/vuln_nx
 setarch $(uname -m) -R ./build/exploit -z -t build/vuln_nx    # NX 下 shellcode 执行即崩, 打不通
 
-# ASLR:对比开/关
+# ASLR: 对比开/关
 cat /proc/sys/kernel/randomize_va_space   # 2=完全开启(默认)
-just exploit          # ASLR 开:几乎打不中
-just noaslr   # ASLR 关:几十发内命中
+./build/exploit -z -t build/vulnerable    # 若未关闭 ASLR, 几乎不可能猜解成功
 ```
 
-**重点认知**: 没有任何单层是"银弹". 
-- Canary 挡经典返回地址覆盖, 但挡不住信息泄露后精确重写、或不经过 `ret`
-  的控制流劫持. 
-- NX 让 shellcode 失效, 于是攻击者转向 **ROP**(复用已有代码片段). 
+没有任何单层是"银弹". 
+
+- Canary 挡经典返回地址覆盖, 但挡不住信息泄露后精确重写、或不经过 `ret` 的控制流劫持. 
+
+- NX 让 shellcode 失效, 但是攻击者可以转向[**ROP**(*Return-Oriented Programming*, 返回导向编程)](https://ctf-wiki.org/pwn/linux/user-mode/stackoverflow/x86/basic-rop/)(复用已有代码片段). 
+
 - ASLR 靠随机性, 但一次信息泄露就可能把它废掉. 
 
 在现代操作系统上想要利用, 就需要"**泄露 → 绕 ASLR → ROP 绕 NX → 精确重写绕 Canary**"的组合拳. 
