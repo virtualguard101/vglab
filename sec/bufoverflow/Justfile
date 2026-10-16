@@ -1,16 +1,3 @@
-# bof-lab —— 缓冲区溢出实验构建 / 演示脚本
-#
-# 关键：各阶段用“互相矛盾”的编译标志，这本身就是教学内容。
-#   脆弱目标 (part3) 必须关掉所有现代防御，攻击 (part4) 才打得通；
-#   防御阶段 (part5/canary) 再把防御逐个打开，对照观察。
-#
-# 用法：
-#   just            列出所有命令
-#   just build      编译全部靶子与工具到 build/
-#   just demo       从头到尾跑一遍完整攻击链（无需手动输地址）
-#   just defense    演示四层防御如何逐一拦截同一发 payload
-#   just clean      清空 build/
-
 src := "src"
 build := "build"
 cc := "gcc"
