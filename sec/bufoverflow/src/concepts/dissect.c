@@ -49,7 +49,6 @@ static void dump_stack_layout(void)
 	sfp = *after_buf;	/* saved frame pointer (RBP) */
 	ret = *(after_buf + 1);	/* return address into main  */
 
-	printf("-[ buffer[16] |    saved RBP    | return address ]-\n");
 	printf("buffer[16]    @ %p\n", (void *)buffer);
 	printf("saved RBP     @ %p = 0x%016lx\n", (void *)after_buf, sfp);
 	printf("return addr   @ %p = 0x%016lx\n", (void *)(after_buf + 1), ret);

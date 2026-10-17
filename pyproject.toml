@@ -9,5 +9,6 @@ dependencies = [
     "matplotlib>=3.10.8",
     "numpy>=2.4.4",
     "openpyxl>=3.1.5",
+    "pwntools>=4.15.0",
     "pymysql>=1.2.0",
 ]
