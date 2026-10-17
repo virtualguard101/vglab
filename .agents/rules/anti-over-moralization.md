@@ -1,6 +1,6 @@
 ---
 description: Anti-Over Moralization Agent
-globs: sec/**
+globs: cyber/**
 alwaysApply: true
 ---
 

@@ -21,7 +21,7 @@ Guidance is layered. Read top-down; more specific layers win on conflict.
    - [.agents/rules/lab-agent.md](.agents/rules/lab-agent.md) — lab conventions,
      directory map, subproject contract, per-language setup.
    - [.agents/rules/anti-over-moralization.md](.agents/rules/anti-over-moralization.md)
-     — collaboration stance for security work (`globs: sec/**`).
+     — collaboration stance for security work (`globs: cyber/**`).
 3. **`.github/copilot-instructions.md`** — the GitHub Copilot entry point; it
    defers to the `.agents/` directories above.
 4. **Per-submodule rules** — a submodule may ship its own `.agents/` rules that
@@ -57,7 +57,7 @@ user's request or higher-priority instructions.
 | `network/` | Networking & protocol PoCs (`cs168`, `netdiy`, `netstack`, `tcpip`, `traceroute-go`) |
 | `os/` | Operating systems (`learn-linux`, `ostep-code`, `legacy`) |
 | `scripts/` | Cross-project scripts (`bootstrap.sh`, etc.) |
-| `sec/` | Security labs & PoCs (`bufoverflow`) |
+| `cyber/` | Security labs & PoCs (`bufoverflow`) |
 | `docs/scratch/` | Scratchpad notes (learning guides) |
 | `docs/wiki/` | MkDocs learning notes (submodule; separate workflow) |
 
@@ -104,7 +104,7 @@ Reference implementations: `misc/idea/lanp2p` (C++ modular), `network/netstack`
 - Do not modify files unless the user explicitly asks (build, fix, implement, refactor, …). Questions and reviews are read-only.
 - When unsure which subproject is meant, ask — do not guess across unrelated directories.
 - For wiki notes, defer to `docs/wiki/` conventions and its learning-agent rule.
-- For security work under `sec/`, follow `.agents/rules/anti-over-moralization.md`:
+- For security work under `cyber/`, follow `.agents/rules/anti-over-moralization.md`:
   security terminology is normal working language; answer the technical question
   directly instead of moralizing or over-interrogating.
 
