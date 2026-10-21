@@ -100,21 +100,21 @@ Disassembly of section .text:
     1128:	55                   	push   rbp
     1129:	48 89 e5             	mov    rbp,rsp
     112c:	48 83 ec 10          	sub    rsp,0x10
-    1130:	c7 45 f0 00 00 00 00 	mov    DWORD PTR [rbp-0x10],0x0
-    1137:	c7 45 fc 00 00 00 00 	mov    DWORD PTR [rbp-0x4],0x0
+    1130:	c7 45 f4 00 00 00 00 	mov    DWORD PTR [rbp-0xc],0x0
+    1137:	c7 45 f8 00 00 00 00 	mov    DWORD PTR [rbp-0x8],0x0
     113e:	eb 26                	jmp    1166 <main+0x3e>
-    1140:	c7 45 f4 01 00 00 00 	mov    DWORD PTR [rbp-0xc],0x1
+    1140:	c7 45 fc 01 00 00 00 	mov    DWORD PTR [rbp-0x4],0x1
     1147:	eb 17                	jmp    1160 <main+0x38>
     1149:	8b 45 f8             	mov    eax,DWORD PTR [rbp-0x8]
     114c:	89 c7                	mov    edi,eax
     114e:	e8 c6 ff ff ff       	call   1119 <increase>
     1153:	89 45 f8             	mov    DWORD PTR [rbp-0x8],eax
     1156:	8b 45 f8             	mov    eax,DWORD PTR [rbp-0x8]
-    1159:	01 45 f0             	add    DWORD PTR [rbp-0x10],eax
-    115c:	83 45 f4 01          	add    DWORD PTR [rbp-0xc],0x1
-    1160:	83 7d f4 0a          	cmp    DWORD PTR [rbp-0xc],0xa
+    1159:	01 45 f4             	add    DWORD PTR [rbp-0xc],eax
+    115c:	83 45 fc 01          	add    DWORD PTR [rbp-0x4],0x1
+    1160:	83 7d fc 0a          	cmp    DWORD PTR [rbp-0x4],0xa
     1164:	7e e3                	jle    1149 <main+0x21>
-    1166:	83 7d f0 36          	cmp    DWORD PTR [rbp-0x10],0x36
+    1166:	83 7d f4 36          	cmp    DWORD PTR [rbp-0xc],0x36
     116a:	7e d4                	jle    1140 <main+0x18>
     116c:	b8 00 00 00 00       	mov    eax,0x0
     1171:	c9                   	leave

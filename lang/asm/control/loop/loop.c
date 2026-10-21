@@ -10,7 +10,7 @@ int main()
 
 	while (sum < 55) {
 		for (int i = 1; i <= 10; ++i) {
-			int step = increase(step);
+			step = increase(step);
 			sum += step;
 		}
 	}
