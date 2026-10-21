@@ -34,3 +34,6 @@ build-*/
 
 # gdb
 .gdb_history
+
+# ida
+*.out.*
