@@ -1,0 +1,6 @@
+asm src:
+    as {{ src }} -o {{ replace(src, ".s", ".o") }} 
+    ld {{ replace(src, ".s", ".o") }} -o {{ replace(src, ".s", ".out") }}
+
+clean:
+    rm -f *.o *.out
