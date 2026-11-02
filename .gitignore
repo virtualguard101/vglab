@@ -37,3 +37,6 @@ build-*/
 
 # ida
 *.out.*
+
+# ctf workspace
+cyber/ctf/workspace/
