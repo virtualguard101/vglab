@@ -2,11 +2,16 @@
 
 .global _start
 
+.section .data
+
+.file_path:
+    .ascii "flag.txt\0"
+
 .section .text
 
 _start:
     mov rax, 2                   # SYS_open
-    mov rdi, [rsp + 16]          # argv[1]: 文件路径字符串的地址
+    lea rdi, [rip + .file_path]  # 文件路径字符串的地址
     xor esi, esi                 # flags = 0, 只读打开
     syscall                      # rax = 新文件描述符
 

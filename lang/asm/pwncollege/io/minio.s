@@ -11,10 +11,12 @@ _start:
     mov rdx, 128                # 读取 128 字节
     syscall
 
+    mov rdx, rax                # 写出实际读取的字节数
     mov rax, 1                  # SYS_write
     mov rdi, 1                  # stdout (1)
     mov rsi, rsp                # 从栈顶写出刚读入的数据
-    mov rdx, 128                # 写出 128 字节
+    # mov rdx, 128              # 写出 128 字节, 若采用该方式, 
+                                # 会将内存中未初始化的部分也写出(通常是乱码)
     syscall
 
     mov rax, 60                 # SYS_exit
