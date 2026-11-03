@@ -6,6 +6,8 @@
 _start:
 
 main:
+	mov	rax, [rsp+16]
+	cmp	BYTE PTR [rax], 'p'
 	jne	fail
 
 success:
