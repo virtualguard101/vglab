@@ -1,0 +1,11 @@
+so:
+    as solve.s -o solve.o
+    ld -shared solve.o -o solve.so
+
+debug:
+    as solve.s -o solve.o
+    as debug.s -o debug.o
+    ld debug.o solve.o -o debug.out
+
+clean:
+    rm -f *.o *.so debug.out

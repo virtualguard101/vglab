@@ -1,0 +1,19 @@
+# Downloaded kernel release: compressed archive, uncompressed tar, signature
+/linux-*.tar
+/linux-*.tar.xz
+/linux-*.tar.sign
+
+# Extracted kernel source tree and all in-tree build output
+/src/
+/linux-*/
+
+# BusyBox source tree, tarball, and install prefix
+/busybox-*/
+/busybox-*.tar.bz2
+
+# initramfs staging tree and packed image
+/initramfs/
+/initramfs.cpio.gz
+
+# Build and QEMU logs
+*.log
